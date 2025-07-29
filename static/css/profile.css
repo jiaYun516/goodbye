@@ -5,52 +5,85 @@ body {
 
 .profile-container {
     max-width: 1240px;
-    padding: 140px 18px 28px 18px !important;  /* 上面推 140px，底下推 28px，左右各 18px */
+    padding: 140px 32px 32px 32px;  /* 兩側空間大一點比較像你要的版型 */
     background: #fff8ed;
     border-radius: 18px;
     margin: 0 auto;
 }
 
+/* --- 個人頭像區塊 --- */
 .profile-header {
     display: flex;
     align-items: center;
-    margin-bottom: 25px;
-    background-color: #ffffff;
+    gap: 40px;
+    margin-bottom: 28px;
+    background-color: #f9f7f1;
+    background: none; /* 不要白色底！ */
+    padding: 0;
 }
 
+/* 頭像 */
 .profile-avatar {
-    
-    width: 96px;             /* 固定寬 */
-    height: 96px;            /* 固定高，和寬一樣就會是正圓 */
-    border-radius: 50%;      /* 這一行讓它永遠圓形！ */
-    object-fit: cover;       /* 圖片填滿、不變形、裁切溢出區域 */
-    border: 2px solid #c5d6ea;
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2.5px solid #c5d6ea;
     background: #f3f3f3;
-    margin-right: 36px;      /* 跟你原本的一樣 */
-    display: block;          /* 讓 img 適應父層 */
+    box-shadow: 0 2px 6px #0002;
+    margin-right: 0;
+    display: block;
+}
+
+/* 基本資料+統計 */
+.profile-basic {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .profile-basic h2 {
-    font-size: 2.2rem;
+    font-size: 2.4rem;
     font-weight: bold;
-    margin-bottom: 14px;
+    margin-bottom: 8px;
     color: #3955ac;
+    letter-spacing: 2px;
+    margin-left: 0;
 }
 
 .profile-stats {
     display: flex;
-    gap: 38px;
-    font-size: 1.12rem;
-    color: #454444;
+    align-items: center;
+    gap: 32px;
+    font-size: 1.16rem;
+    color: #264653;
+    margin-top: 2px;
+    flex-wrap: wrap;
 }
 
-.profile-section-title {
-    margin: 40px 0 18px 0;
+.profile-stats span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.profile-stats .value {
     font-weight: bold;
-    font-size: 1.13rem;
-    color: #3561a3;
+    color: #115be7;
+    margin-left: 3px;
 }
 
+/* --- 區塊標題 --- */
+.profile-section-title {
+    margin: 32px 0 14px 0;
+    font-weight: bold;
+    font-size: 1.18rem;
+    color: #264653;
+    border-bottom: 2px solid #dedede;
+    padding-bottom: 2px;
+}
+
+/* --- 卡片區 --- */
 .profile-card-list {
     margin-bottom: 24px;
 }
@@ -58,7 +91,13 @@ body {
 .profile-card.card {
     border-radius: 13px;
     box-shadow: 0 2px 8px #0001;
-    border: none;
+    border: 1.5px solid #e6e6e6;
+    background: #fff;
+    transition: box-shadow 0.2s;
+}
+.profile-card.card:hover {
+    box-shadow: 0 6px 18px #2646531a;
+    border-color: #b9d2f6;
 }
 
 .card-img-top {
@@ -71,7 +110,7 @@ body {
 
 .card-title {
     font-weight: bold;
-    font-size: 1rem;
+    font-size: 1.07rem;
     margin: 4px 0;
 }
 
@@ -100,16 +139,19 @@ body {
 
 /* RWD */
 @media (max-width: 1200px) {
+    .profile-container { padding: 140px 10px 32px 10px; }
     .row-cols-lg-6 > .col { width: 25%; }
+    .profile-header { gap: 24px; }
 }
 @media (max-width: 900px) {
+    .profile-container { padding: 100px 2vw 18px 2vw; }
     .row-cols-lg-6 > .col { width: 33.3333%; }
-    .profile-header { flex-direction: column; align-items: flex-start; }
+    .profile-header { flex-direction: column; align-items: flex-start; gap: 10px; }
     .profile-avatar { margin-bottom: 18px; }
     .profile-stats { flex-direction: column; gap: 8px; }
 }
 @media (max-width: 600px) {
-    .profile-container { padding: 80px 2vw 16px 2vw; }  /* 手機版推小一點，視情況調整 */
+    .profile-container { padding: 80px 2vw 16px 2vw; }
     .row-cols-lg-6 > .col { width: 50%; }
     .profile-section-title { font-size: 1rem; }
 }
