@@ -8,23 +8,26 @@
         <img src="/static/img/menu.png/" alt="Menu" />
     </button>
   
- <div class="logo">
-    <a href="{% url 'home' %}">
-        <img alt="GoodBye Logo" src="/static/img/logolong.png" />
-    </a>
-</div>
+  <div class="logo">
+      <a href="{% url 'home' %}">
+          <img alt="GoodBye Logo" src="/static/img/logolong.png" />
+      </a>
+  </div>
+
+    <!-- Search Bar -->
+    <form action="{% url 'home' %}" method="get" class="search-bar d-flex">
+      <input type="text" name="q" value="{{ request.GET.q }}" placeholder="有什麼喜歡的東西嗎？" >
+      <button type="submit" aria-label="搜索"><i class="fas fa-search"></i></button>
+    </form>
   
-    <div class="search-bar">
-        <input type="text" placeholder="有什麼喜歡的東西嗎？">
-        <button aria-label="搜索"><i class="fas fa-search"></i></button>
-    </div>
-  
+    <!-- 購物車 -->
     <a href="/cart/">
         <button class="msg-btn" aria-label="購物車">
             <img src="/static/img/cart.png" alt="購物車">
         </button>
     </a>
   
+    <!-- 漢堡清單 -->
     <nav class="menu" id="menu">
       {% if request.user.is_authenticated %}
         <div class="user-info1">
@@ -52,7 +55,9 @@
             
           </div>
         </div>
-        <hr />
+
+        <hr/>
+
         <div class="user-target">正在追蹤：
 
         </div>

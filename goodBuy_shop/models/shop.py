@@ -49,3 +49,11 @@ class Shop(models.Model):
     
     def __str__(self):
         return self.name
+    
+    """
+    回傳此商店所有標籤名稱（tag.name）清單。
+    這是從 ShopTag 取得所有與該商店相關聯的標籤文字    
+    """
+    @property
+    def tags(self):
+        return [st.tag.name for st in self.shoptag_set.all()]

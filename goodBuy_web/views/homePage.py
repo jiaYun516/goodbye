@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render , redirect
 
 from goodBuy_shop.shop_utils import *
 from goodBuy_shop.weighting import *
@@ -12,12 +12,60 @@ from goodBuy_tag.models import *
 
 from itertools import chain
 from operator import attrgetter
+from django.db.models import Q
 
 def homePage(request):
-    #篩選
+    # 搜尋關鍵字
+    q_raw = request.GET.get('q')
     post_type = request.GET.get('type')  # sell / want 
     tag = request.GET.get('tag')         # 標籤名稱 
+    
+    # 搜尋字串
+    q = q_raw.strip() if q_raw else ''
 
+    # 若使用者有送出 q，但內容為空白就回首頁
+    if q_raw is not None and q == '':
+        return redirect('home')
+
+    #如果搜尋有東西 就開始搜尋商店/收物帖/tag
+    if q:
+        # 查詢符合關鍵字的 Shop
+        shops = Shop.objects.filter(
+            Q(name__icontains=q) | Q(introduce__icontains=q) |
+            Q(product__name__icontains=q) |
+            Q(shoptag__tag__name__icontains=q),
+            permission__id=1
+        ).distinct()
+        for shop in shops:
+            shop.post_type = 'shop'
+
+        # 查詢符合關鍵字的 Want
+        wants = Want.objects.filter(
+            Q(title__icontains=q) | Q(post_text__icontains=q) |
+            Q(wanttag__tag__name__icontains=q),
+            permission__id=1
+        ).distinct()
+        for want in wants:
+            want.post_type = 'want'
+
+        items = list(chain(shops, wants))
+        items.sort(key=lambda x: x.update, reverse=True)
+
+        return render(request, 'home.html',{
+            'items': items,
+            'q': q,
+            'post_type': post_type,
+        })
+
+    # else:
+    #     # 原本推薦系統的推薦清單（保留原邏輯）
+    #     personalized = personalized_shop_recommendation(request.user, limit=10)
+    #     personalized_wants = personalized_want_recommendation(request.user, limit=10)
+
+    #     items = list(chain(personalized, personalized_wants))
+    #     items.sort(key=lambda x: x.update, reverse=True)
+
+    #篩選
     if request.user.is_authenticated:
         # 個人化推薦（最多 10 筆）
         personalized = personalized_shop_recommendation(request.user, limit=10)

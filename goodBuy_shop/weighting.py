@@ -61,7 +61,7 @@ def score_shops_by_keywords(keywords, active_shop_ids, shop_queryset=None):
     scores = defaultdict(int)
     q = Q()
     for kw in keywords:
-        q |= Q(tags__icontains=kw) | Q(name__icontains=kw) | Q(introduce__icontains=kw)
+        q |= Q(shoptag__tag__name__icontains=kw) | Q(name__icontains=kw) | Q(introduce__icontains=kw)
 
     matched_shops = Shop.objects.filter(q, id__in=active_shop_ids)
     if shop_queryset:
@@ -99,7 +99,7 @@ def compute_shop_scores(user, shop_queryset=None):
     )
     for kw in recent_keywords:
         for s in Shop.objects.filter(
-            Q(name__icontains=kw) | Q(tags__icontains=kw),
+            Q(name__icontains=kw) | Q(shoptag__tag__name__icontains=kw),
             id__in=active_shop_ids
         ).filter(shop_is_active(now)):
             _add_score(s.id, PERSONAL_WEIGHTS['search_keyword'])
