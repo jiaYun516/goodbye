@@ -9,6 +9,7 @@ from django.shortcuts import *
 from django.utils import timezone
 from django.http import JsonResponse
 from django.conf import settings
+from django.core.files import File
 
 from ..shop_forms import AnnouncementForm
 from goodBuy_shop.models import *
@@ -73,10 +74,24 @@ def add_shop(request):
             names = request.POST.getlist('product_name[]')
             prices = request.POST.getlist('product_price[]')
             qtys = request.POST.getlist('product_qty[]')
-            
+
+            # AI 切割圖路徑
             product_images = []
+            image_names = request.POST.getlist('product_image_name[]')  
+
             for i in range(len(names)):
-                product_images.append(request.FILES.get(f'product_image_{i}'))
+                uploaded = request.FILES.get(f'product_image_{i}')
+                if uploaded:
+                    product_images.append(uploaded)  # 使用者上傳的檔案
+                elif i < len(image_names):
+                    product_images.append(image_names[i])  # AI 切圖的相對路徑
+                else:
+                    product_images.append(None)  # 沒有圖    
+
+            #原本只會存在 product_image_name[] 這個 hidden
+            # product_images = []
+            # for i in range(len(names)):
+            #     product_images.append(request.FILES.get(f'product_image_{i}'))
 
             success_count = 0
             for i in range(len(names)):
@@ -155,10 +170,23 @@ def edit_shop(request, shop):
             names = request.POST.getlist('product_name[]')
             prices = request.POST.getlist('product_price[]')
             qtys = request.POST.getlist('product_qty[]')
-            
+
+            # AI 切割圖路徑
             product_images = []
+            image_names = request.POST.getlist('product_image_name[]')  
+
             for i in range(len(names)):
-                product_images.append(request.FILES.get(f'product_image_{i}'))
+                uploaded = request.FILES.get(f'product_image_{i}')
+                if uploaded:
+                    product_images.append(uploaded)  # 使用者上傳的檔案
+                elif i < len(image_names):
+                    product_images.append(image_names[i])  # AI 切圖的相對路徑
+                else:
+                    product_images.append(None)  # 沒有圖
+
+            # product_images = []
+            # for i in range(len(names)):
+            #     product_images.append(request.FILES.get(f'product_image_{i}'))
 
             old_products = list(shop.product_set.filter(is_delete=False))
             shop.product_set.filter(is_delete=False).update(is_delete=True)
@@ -333,3 +361,40 @@ def select_cropped_images(request):
     return redirect('shop_crop_view')
 
 # -------------------------
+# 前端需要 - 前端直接呼叫裁切並自動填資料
+# -------------------------
+@csrf_exempt
+def crop_image_api(request):
+    if request.method == "POST" and request.FILES.get("image"):
+        # 取得圖片
+        image_file = request.FILES["image"]
+
+        # 建立儲存資料夾（upload/crop/user_{id}/）
+        user_folder = f"user_{request.user.id if request.user.is_authenticated else 'temp'}"
+        crop_folder = os.path.join(settings.MEDIA_ROOT, "crop", user_folder)
+        cropped_folder = os.path.join(settings.MEDIA_ROOT, "cropped", user_folder)
+
+        os.makedirs(crop_folder, exist_ok=True)
+        os.makedirs(cropped_folder, exist_ok=True)
+
+        # 儲存資料夾
+        filename = f"{uuid.uuid4().hex[:8]}.jpg"
+        save_path = os.path.join(crop_folder, filename)
+        # 將圖片一塊一塊存到 save_path 路徑
+        with open(save_path, "wb") as f:
+            for chunk in image_file.chunks():
+                f.write(chunk)
+
+        # 呼叫裁切
+        cropped_names = crop_detected_objects(save_path, cropped_folder)
+
+        # 將路徑轉成相對於 MEDIA_URL 的路徑（回傳給前端）
+        adjusted_paths = [
+            os.path.join("cropped", user_folder, os.path.basename(name)).replace("\\", "/")
+            for name in cropped_names
+        ]
+
+        # 回傳給前端js
+        return JsonResponse({"success": True, "images": adjusted_paths})
+     # 回傳給前端js
+    return JsonResponse({"success": False, "error": "Invalid request"})

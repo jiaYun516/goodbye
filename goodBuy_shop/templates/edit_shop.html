@@ -30,11 +30,10 @@
             </div>
             <div id="image-preview-area" class="image-preview-area d-flex flex-wrap gap-2 mt-2"></div>
           </div>
-        <label class="form-label fw-bold mt-2">商品圖片（可多張）</label>
-        <div class="form-check my-2">
-          <input class="form-check-input" type="radio" name="auto_cut" id="autoCutOn" value="1">
-          <label class="form-check-label" for="autoCutOn">圖片自動切割</label>
-        </div>
+        <label class="form-label fw-bold mt-2">商店封面（可多張）</label>
+        
+        <!-- 商品自動切割功能 -->
+        {% include 'AutoCut.html' %}
 
         <!-- 顯示已有圖片 -->
         <div class="d-flex flex-wrap gap-2 mt-2">
@@ -144,6 +143,7 @@
 
 <div id="initial-tag-data" data-tags="{{ selected_tags|join:',' }}"></div>
 <script src="{% static 'js/shop_form.js' %}"></script>
+<script src="{% static 'js/AutoCut.js' %}"></script>
 </body>
 </html>
 

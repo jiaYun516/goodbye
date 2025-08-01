@@ -51,8 +51,6 @@ function addProduct() {
   productIndex += 1;
 }
 
-
-
 // 切換「開始時間」顯示（僅限現貨）
 const shopStateField = document.querySelector('[name="shop_state"]');
 const startTimeGroup = document.getElementById("start-time-group");
