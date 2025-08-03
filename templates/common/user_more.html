@@ -1,0 +1,34 @@
+{% load static %}
+<h2>{{ profile_user.username }}的{% if is_shop %}賣場{% else %}收物文{% endif %}</h2>
+<div class="row">
+    {% for obj in items %}
+    <div class="col-lg-2 col-md-3 col-6 mb-4">
+        <div class="profile-card card h-100">
+            <a href="{% if is_shop %}{% url 'shop' obj.id %}{% else %}{% url 'want_detail' obj.id %}{% endif %}" class="text-decoration-none text-dark">
+                {% if is_shop %}
+                    {% if obj.cover_img %}
+                        <img src="{{ obj.cover_img.img.url }}" class="card-img-top" alt="賣場圖片">
+                    {% else %}
+                        <img src="{% static 'images/no-image.png' %}" class="card-img-top" alt="無圖片">
+                    {% endif %}
+                    <div class="card-body">
+                        <h6 class="card-title fw-bold">{{ obj.name|truncatechars:10 }}</h6>
+                        <p class="card-text text-danger">${{ obj.price_min }} - ${{ obj.price_max }}</p>
+                        <p class="card-sub">{{ obj.status }}</p>
+                    </div>
+                {% else %}
+                    {% if obj.cover_img %}
+                        <img src="{{ obj.cover_img.img.url }}" class="card-img-top" alt="收物圖片">
+                    {% else %}
+                        <img src="{% static 'images/no-image.png' %}" class="card-img-top" alt="無圖片">
+                    {% endif %}
+                    <div class="card-body">
+                        <h6 class="card-title fw-bold">{{ obj.title|truncatechars:10 }}</h6>
+                        <p class="card-sub">{{ obj.status }}</p>
+                    </div>
+                {% endif %}
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+</div>

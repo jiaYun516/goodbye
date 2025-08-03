@@ -104,7 +104,9 @@
         {% endfor %}
         {% if user_shops|length > 6 %}
         <div class="col-12 text-end">
-            {% comment %} <button class="more-btn" onclick="window.location.href='{% url 'user_shops_more' profile_user.id %}'">查看更多{{ profile_user.username }}的賣場 >></button> {% endcomment %}
+            <button class="more-btn" onclick="window.location.href='{% url 'user_more' profile_user.id 'shops' %}'">
+                查看更多{{ profile_user.username }}的賣場 >>
+            </button>
         </div>
         {% endif %}
     </div>
@@ -130,9 +132,11 @@
         </div>
         {% endfor %}
         {% if user_wants|length > 6 %}
-        {% comment %} <div class="col-12 text-end">
-            <button class="more-btn" onclick="window.location.href='{% url 'user_wants_more' profile_user.id %}'">查看更多{{ profile_user.username }}的收物文 >></button>
-        </div> {% endcomment %}
+            <div class="col-12 text-end">
+                <button class="more-btn" onclick="window.location.href='{% url 'user_more' profile_user.id 'wants' %}'">
+                    查看更多{{ profile_user.username }}的收物文 >>
+                </button>
+            </div>
         {% endif %}
     </div>
 

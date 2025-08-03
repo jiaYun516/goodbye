@@ -4,6 +4,7 @@ from goodBuy_web.models import User
 from goodBuy_shop.models import Shop, ShopImg
 from goodBuy_want.models import Want, WantImg
 from goodBuy_order.models import Comment  # <<-- 新增這行
+from goodBuy_web.views import user as views
 
 def view_profile(request, user_id):
     profile_user = get_object_or_404(User, id=user_id)
@@ -44,4 +45,22 @@ def view_profile(request, user_id):
         'fans_count': fans_count,
         'shop_count': shop_count,
         'buy_count': buy_count,
+    })
+
+def user_more(request, user_id, tab):
+    profile_user = get_object_or_404(User, id=user_id)
+    if tab == 'shops':
+        items = Shop.objects.filter(owner=profile_user)
+        is_shop = True
+    elif tab == 'wants':
+        items = Want.objects.filter(user=profile_user)
+        is_shop = False
+    else:
+        # 參數錯誤，回首頁或 404
+        return redirect('home')
+
+    return render(request, 'common/user_more.html', {
+        'profile_user': profile_user,
+        'items': items,
+        'is_shop': is_shop,
     })
