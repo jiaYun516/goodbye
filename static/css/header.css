@@ -157,6 +157,11 @@
     color: #133c6d;
 }
 
+.sidebar-links{
+    color: #7f7979;
+    font-weight: bold;
+}
+
 .menu .tellme1, .menu .tellme {
     padding: 18px 0 10px 0;
     font-size: 13px;
