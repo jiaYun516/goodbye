@@ -1,52 +1,3 @@
-// // cart.js
-
-// document.addEventListener("DOMContentLoaded", function () {
-//   // 更新單一 group 的總價
-//   function updateGroupTotal(groupElement) {
-//     const items = groupElement.querySelectorAll(".cart-item");
-//     let total = 0;
-
-//     items.forEach((item) => {
-//       const checkbox = item.querySelector(".item-checkbox");
-//       const quantityInput = item.querySelector(".quantity-input");
-//       const price = parseFloat(item.querySelector(".text-danger").textContent);
-
-//       if (checkbox.checked) {
-//         const quantity = parseInt(quantityInput.value);
-//         total += price * quantity;
-//       }
-//     });
-
-//     groupElement.querySelector(".group-total").textContent = `${total}$`;
-//   }
-
-//   // 處理每個 group checkbox（全選）
-//   document.querySelectorAll(".group-checkbox").forEach((groupCheckbox, index) => {
-//     groupCheckbox.addEventListener("change", function () {
-//       const groupElement = groupCheckbox.closest(".cart-group");
-//       const itemCheckboxes = groupElement.querySelectorAll(".item-checkbox");
-//       itemCheckboxes.forEach((cb) => (cb.checked = groupCheckbox.checked));
-//       updateGroupTotal(groupElement);
-//     });
-//   });
-
-//   // 個別 checkbox 切換時也更新小計
-//   document.querySelectorAll(".item-checkbox").forEach((checkbox) => {
-//     checkbox.addEventListener("change", function () {
-//       const groupElement = checkbox.closest(".cart-group");
-//       updateGroupTotal(groupElement);
-//     });
-//   });
-
-//   // 數量變更時觸發重新計算
-//   document.querySelectorAll(".quantity-input").forEach((input) => {
-//     input.addEventListener("change", function () {
-//       const groupElement = input.closest(".cart-group");
-//       updateGroupTotal(groupElement);
-//     });
-//   });
-// });
-
 document.addEventListener("DOMContentLoaded", function () {
   // 更新單一 group 的總價
   function updateGroupTotal(groupElement) {
@@ -74,7 +25,7 @@ document.addEventListener("DOMContentLoaded", function () {
       const itemCheckboxes = groupElement.querySelectorAll(".item-checkbox");
       itemCheckboxes.forEach((cb) => (cb.checked = groupCheckbox.checked));
       updateGroupTotal(groupElement);
-      updateCartCount()
+      updateCartCount(); // 更新數量
     });
   });
 
@@ -116,27 +67,35 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // 更新購物車商品數量顯示
   function updateCartCount() {
-  const checkedItems = document.querySelectorAll(".item-checkbox:checked");
-  const count = checkedItems.length;
-  document.getElementById("cart-count").textContent = `已選取 ${count} 個商品`;
-  updateCartCount() // 初始化時更新一次
+    const checkedItems = document.querySelectorAll(".item-checkbox:checked");
+    const count = checkedItems.length;
+    document.getElementById("cart-count").textContent = `已選取 ${count} 個商品`;
   }
 
-  document.addEventListener("DOMContentLoaded", function () {
+  updateCartCount(); // 初始化時更新一次
+
+  // 結帳按鈕邏輯：收集勾選項目並送出 checkout-form
   const checkoutForm = document.getElementById("checkout-form");
   const checkoutButton = document.getElementById("checkout-button");
 
   if (checkoutForm && checkoutButton) {
     checkoutButton.addEventListener("click", function () {
-      // 清空表單內容，只保留 CSRF
-      checkoutForm.innerHTML = `{% csrf_token %}`;
-
       const checkedBoxes = document.querySelectorAll(".item-checkbox:checked");
       if (checkedBoxes.length === 0) {
         alert("請先勾選要結帳的商品！");
         return;
       }
 
+      // 清空 checkoutForm，只保留 CSRF token
+      const csrfInput = checkoutForm.querySelector('input[name="csrfmiddlewaretoken"]');
+      const csrfClone = csrfInput ? csrfInput.cloneNode() : null;
+
+      checkoutForm.innerHTML = ''; // 清空
+      if (csrfClone) {
+        checkoutForm.appendChild(csrfClone); // 加回複製的 token
+      }
+
+      // 加入勾選的 cart_ids
       checkedBoxes.forEach((box) => {
         const input = document.createElement("input");
         input.type = "hidden";
@@ -146,9 +105,7 @@ document.addEventListener("DOMContentLoaded", function () {
       });
 
       checkoutForm.submit();
-      });
-    }
-  });
-
+    });
+  }
 });
 
