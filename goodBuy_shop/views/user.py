@@ -12,8 +12,8 @@ from ..shop_utils import *
 # -------------------------
 # 收藏商店
 # -------------------------
-@login_required(login_url='login')
 @shop_exists_required
+@blacklist_check(lambda shop: shop.owner, msg='你已被此賣家封鎖，無法查看', context_name='shop')
 def shop_collect_toggle(request, shop):
     if shop.owner == request.user:
         messages.warning(request, '不可以收藏自己的商店喔')
@@ -27,14 +27,13 @@ def shop_collect_toggle(request, shop):
             messages.success(request, '收藏成功')
 
     return redirect('shop', shop_id=shop.id)
+
 # -------------------------
 # 查看收藏的商店
 # -------------------------
 @login_required(login_url='login')
 def my_shops_collected(request):
     shop_ids = ShopCollect.objects.filter(user=request.user).values_list('shop_id', flat=True)
-
-    #shops = shopInformation_many(Shop.objects.filter(id__in=shop_ids).order_by('-date'))
     shops = shopInformation_many(Shop.objects.filter(id__in=shop_ids).order_by('-update'))
     return render(request, 'shop_collects.html', locals())
 # -------------------------
@@ -43,6 +42,5 @@ def my_shops_collected(request):
 @login_required(login_url='login')
 def my_shop_footprints(request):
     shop_ids = ShopFootprints.objects.filter(user=request.user).values_list('shop_id', flat=True)
-    #shops = shopInformation_many(Shop.objects.filter(id__in=shop_ids).order_by('-date'))
     shops = shopInformation_many(Shop.objects.filter(id__in=shop_ids).order_by('-update'))
     return render(request, 'shop_footprints.html', locals())
