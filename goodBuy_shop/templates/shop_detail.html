@@ -138,7 +138,12 @@
 
                     <!-- 右側：其餘資訊 -->
                     <div class="footer-right flex-grow-1 footer-col">
-                        <p><strong>分配優先：</strong>{{ shop.purchase_priority.name }}</p>
+                        <p>
+                            <strong>分配優先：</strong>{{ shop.purchase_priority.name }}
+                            {% if shop.purchase_priority.id == 2 or shop.purchase_priority.id == 3 %}
+                                <a href="{% url 'priority_table' shop.id %}" class="ms-2 fw-bold text-info">(點此 查看目前順序)</a>
+                            {% endif %}
+                        </p>
                         <p><strong>商品狀態：</strong>{{ shop.shop_state.name }}</p>
                         <p><strong>開始時間：</strong>{{ shop.start_time|date:"Y/m/d" }}</p>
                         <p><strong>結束時間：</strong>{{ shop.end_time|date:"Y/m/d" }}</p>
