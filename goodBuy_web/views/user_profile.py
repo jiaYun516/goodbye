@@ -2,11 +2,37 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.db.models import Avg
 from goodBuy_web.models import User
 from goodBuy_shop.models import Shop, ShopImg
+from goodBuy_shop.weighting import personalized_shop_recommendation
+from goodBuy_shop.hot_rank import get_hot_shops
 from goodBuy_want.models import Want, WantImg
+from goodBuy_want.weighting import personalized_want_recommendation
+from goodBuy_want.hot_rank import get_hot_wants
 from goodBuy_order.models import Comment
+from django.db.models import Q
+from goodBuy_web.models import Blacklist
+from utils.decorators_shortcuts import user_exists_required
 
-def view_profile(request, user_id):
-    profile_user = get_object_or_404(User, id=user_id)
+@user_exists_required
+def view_profile(request, user):
+    profile_user = user
+    is_blocked = False
+
+    # === 黑名單判斷 ===
+    if request.user != profile_user:
+        you_blocked = Blacklist.objects.filter(user=request.user, black_user=profile_user).exists()
+        blocked_by = Blacklist.objects.filter(user=profile_user, black_user=request.user).exists()
+
+        if you_blocked and blocked_by:
+            block_reason = "您已封鎖對方"
+            is_blocked = True
+        elif you_blocked:
+            block_reason = "您已經封鎖對方"
+            is_blocked = True
+        elif blocked_by:
+            block_reason = "對方已封鎖您，無法查看主頁"
+        else:
+            block_reason = None
+        
     user_shops = Shop.objects.filter(owner=profile_user)
     user_wants = Want.objects.filter(user=profile_user)
 
@@ -28,7 +54,7 @@ def view_profile(request, user_id):
         want.status = want.permission.name if hasattr(want, 'permission') else ''
 
     # ---------- 信譽度 & 基本統計 ----------
-    # average_rank = Comment.objects.filter(order__shop__owner=profile_user).aggregate(avg_rank=Avg('rank'))['avg_rank'] or 0
+    average_rank = profile_user.average_rank if profile_user.average_rank else '無評價'
     fans_count = getattr(profile_user, "fans_count", 0)
     shop_count = user_shops.count()
     buy_count = getattr(profile_user, "buy_count", 0)
@@ -37,16 +63,25 @@ def view_profile(request, user_id):
         'profile_user': profile_user,
         'user_shops': user_shops,
         'user_wants': user_wants,
-        # 'average_rank': average_rank,
+        'average_rank': average_rank,
         'fans_count': fans_count,
         'shop_count': shop_count,
         'buy_count': buy_count,
+        'is_blocked': is_blocked,
+        'block_reason': block_reason,
     })
 
 def user_more(request, user_id, tab):
     profile_user = get_object_or_404(User, id=user_id)
+    
     if tab == 'shops':
-        items = Shop.objects.filter(owner=profile_user)
+        if request.user.is_authenticated and request.user == profile_user:
+            items = Shop.objects.filter(owner=profile_user)
+        elif request.user.is_authenticated:
+            items = personalized_shop_recommendation(user=request.user, limit=10)
+        else:
+            items = get_hot_shops(user=profile_user)
+        
         for shop in items:
             shop.cover_img = ShopImg.objects.filter(shop=shop, is_cover=True).first()
             products = shop.product_set.all()
@@ -59,7 +94,13 @@ def user_more(request, user_id, tab):
             shop.status = shop.shop_state.name if hasattr(shop, 'shop_state') else ''
         is_shop = True
     elif tab == 'wants':
-        items = Want.objects.filter(user=profile_user)
+        if request.user.is_authenticated and request.user == profile_user:
+            items = Want.objects.filter(owner=profile_user)
+        elif request.user.is_authenticated:
+            items = personalized_want_recommendation(user=request.user, limit=10)
+        else:
+            items = get_hot_wants(user=profile_user)
+
         for want in items:
             want.cover_img = WantImg.objects.filter(want=want, is_cover=True).first()
             want.status = want.permission.name if hasattr(want, 'permission') else ''
