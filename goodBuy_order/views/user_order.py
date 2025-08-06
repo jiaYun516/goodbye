@@ -16,6 +16,7 @@ from utils.decorators_shortcuts import *
 # -------------------------
 # 商品下單
 # -------------------------
+'''
 @login_required(login_url='login')
 def checkout(request):
     cart_ids = request.POST.getlist('cart_ids') if request.method == 'POST' else []
@@ -150,6 +151,151 @@ def checkout(request):
         'shop_groups': shop_groups,
         'form_by_shop': form_by_shop,
         'single_product': single_product,
+    })
+'''
+
+@login_required(login_url='login')
+def checkout_step1(request):
+    cart_ids = request.POST.getlist('cart_ids') if request.method == 'POST' else []
+    product_id = request.GET.get('product_id')
+    quantity = int(request.GET.get('quantity', 1))
+
+    shop_groups = defaultdict(list)
+    cart_items = []
+
+    # 解析購買資料
+    if product_id:
+        product = get_object_or_404(Product, id=product_id, is_delete=False)
+        shop_groups[product.shop].append({'product': product, 'quantity': quantity})
+
+    elif cart_ids:
+        cart_items = Cart.objects.select_related('product__shop').filter(id__in=cart_ids, user=request.user)
+        if not cart_items:
+            messages.error(request, '購物車資料無效')
+            return redirect('cart')
+        for item in cart_items:
+            shop_groups[item.product.shop].append({'product': item.product, 'quantity': item.amount})
+
+    else:
+        messages.error(request, '無有效商品')
+        return redirect('cart')
+
+    created_order_ids = []
+
+    try:
+        with transaction.atomic():
+            for shop, items in shop_groups.items():
+                if shop.purchase_priority_id != 1:
+                    # 搶購商店 → 加入 Intent 記錄
+                    shop = maybe_extend_rush(shop)
+                    intent, _ = PurchaseIntent.objects.get_or_create(user=request.user, shop=shop)
+
+                    for item in items:
+                        product = item['product']
+                        qty = item['quantity']
+                        intent_product, created = IntentProduct.objects.get_or_create(intent=intent, product=product)
+
+                        current_total = IntentProduct.objects.filter(product=product).exclude(id=intent_product.id).aggregate(
+                            total=Sum('quantity')
+                        )['total'] or 0
+                        available_qty = max(product.stock - current_total, 0)
+
+                        if created:
+                            intent_product.quantity = min(qty, available_qty)
+                        else:
+                            intent_product.quantity = min(intent_product.quantity + qty, available_qty)
+
+                        intent_product.save()
+
+                        if qty > available_qty:
+                            messages.warning(request, f'{product.name} 庫存不足，已調整為 {available_qty} 件')
+
+                    messages.success(request, f'{shop.name} 搶購已加入，請等待分配結果')
+                    continue
+
+                # 一般商店 → 建立訂單
+                total = sum(item['product'].price * item['quantity'] for item in items)
+
+                order = Order.objects.create(
+                    user=request.user,
+                    shop=shop,
+                    total=total,
+                    order_state_id=1,
+                    pay_state_id=10,
+                    second_supplement=0,
+                    pay=None
+                )
+
+                for item in items:
+                    ProductOrder.objects.create(order=order, product=item['product'], amount=item['quantity'])
+
+                created_order_ids.append(order.id)
+                messages.success(request, f'{shop.name} 訂單已建立，請選擇付款與地址')
+
+            if cart_items:
+                cart_items.delete()
+
+            # 有建立 order → 進入 Step2
+            if created_order_ids:
+                request.session['pending_order_ids'] = created_order_ids
+                return redirect('checkout_step2')
+
+            # 全部是搶購 → 結束流程，不進入 Step2
+            return redirect('order_list')
+
+    except Exception as e:
+        messages.error(request, f'建立訂單失敗：{e}')
+        return redirect('cart')
+
+@login_required(login_url='login')
+def checkout_step2(request):
+    order_ids = request.session.get('pending_order_ids')
+    if not order_ids:
+        messages.error(request, '找不到待處理的訂單')
+        return redirect('checkout_step1')
+
+    orders = Order.objects.filter(id__in=order_ids, user=request.user, pay_state_id=10)
+    if not orders:
+        messages.error(request, '訂單已處理或不存在')
+        return redirect('order_list')
+
+    form_by_order = {order: OrderForm(user=request.user, shop=order.shop) for order in orders}
+    addresses = UserAddress.objects.filter(user=request.user)
+
+    if request.method == 'POST':
+        address_id = request.POST.get('address_id')
+        address = get_object_or_404(UserAddress, id=address_id, user=request.user)
+
+        for order in orders:
+            form = OrderForm(request.POST, user=request.user, shop=order.shop)
+            if not form.is_valid():
+                messages.error(request, f'{order.shop.name} 的付款方式未選擇或錯誤')
+                continue
+
+            payment_method = form.cleaned_data['payment_method']
+            payment_mode = form.cleaned_data.get('payment_mode')
+
+            if payment_method == 'cash_on_delivery':
+                pay_state_id = 1 # 取貨付款
+                payment_mode = 'full'
+            else:
+                pay_state_id = 2 if payment_mode == 'deposit' else 8
+
+            order.address = address
+            order.payment_category = payment_method
+            order.payment_mode = payment_mode
+            order.pay_state_id = pay_state_id
+            order.save()
+
+            messages.success(request, f'{order.shop.name} 訂單付款資訊已設定完成')
+
+        del request.session['pending_order_ids']
+        return redirect('order_list')
+
+    return render(request, 'checkout/step2.html', {
+        'orders': orders,
+        'form_by_order': form_by_order,
+        'addresses': addresses,
     })
 
 # -------------------------
