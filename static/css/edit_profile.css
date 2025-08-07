@@ -1,6 +1,7 @@
 /* 整個容器外框 */
 body{
     background: #FDF7EC !important;
+    padding: 110px; /* 這行保證 header 不會擋到內容！ */
 }
 
 .profile-edit-container {
@@ -34,21 +35,29 @@ body{
 
 /* 表單樣式 */
 .form-group {
+    display: flex;
+    align-items: center;
     margin-bottom: 16px;
 }
 .form-group label {
     font-weight: bold;
     display: block;
     margin-bottom: 6px;
+    min-width: 120px; 
+    text-align: right;
+    font-size: 16px;
+    margin-right: 10px;
 }
 .form-group input,
 .form-group select,
 .form-group textarea {
-    width: 100%;
+    width: 50%;
     padding: 10px;
-    border: 1px solid #ccc;
     border-radius: 6px;
     box-sizing: border-box;
+    flex: 1; /* 撐滿剩下寬度 */
+    border: 1px solid #000;
+    font-size: 16px;
 }
 
 /* 頭像圖片樣式 */
@@ -67,18 +76,86 @@ body{
 }
 .btn-cancel {
     background-color: white;
-    color: #f37b83;
-    border: 2px solid #f37b83;
+    color: #F4A7B9;
+    border: 2px solid #F4A7B9;
     padding: 10px 30px;
     border-radius: 10px;
     font-weight: bold;
     margin-right: 10px;
 }
 .btn-confirm {
-    background-color: #f37b83;
+    background-color: #F4A7B9;
     color: white;
     padding: 10px 30px;
     border-radius: 10px;
     border: none;
     font-weight: bold;
+}
+
+/* 更換頭像按鈕 */
+.avatar-upload-btn {
+    display: inline-block;
+    width: 150px;
+    height: 50px;
+    line-height: 50px;
+    background-color: #F7D5DF;
+    border: 2px solid #F4A7B9;
+    border-radius: 25px;
+    color: #555;
+    font-weight: bold;
+    text-align: center;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.avatar-upload-btn:hover {
+    background-color: #f37b83;
+    color: white;
+}
+
+/* 標籤字 */
+/* 一整列水平排列 */
+.row-align {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+/* 左側 label 標籤 */
+.row-align label {
+  min-width: 80px;         /* 固定寬度 */
+  margin-right: 12px;
+  font-weight:bolder;       /* 粗體 */
+  font-size: 18px;         /* 看起來比較剛好 */
+}
+
+/* 右側 input 輸入框 */
+.row-align input {
+  flex: 1;                 /* 右側自動撐滿剩下空間 */
+  padding: 10px;
+  font-size: 18px;
+  border: 1px solid #000;
+  border-radius: 6px;
+}
+/* 到這 */
+
+/* 網格對齊樣式 */
+.grid-align {
+  display: grid;
+  grid-template-columns: 140px 1fr; /* label 固定寬、input 自適應 */
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.grid-align label {
+  font-weight:bolder;       /* 粗體 */
+  font-size: 16px;
+  text-align: right;
+}
+.grid-align input {
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #000;
+  border-radius: 6px;
+  width: 100%;
 }

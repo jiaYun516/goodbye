@@ -12,7 +12,7 @@
         {% include "common/header.html" %}
     </header>
     <div class="profile-edit-container">
-        <h1>編輯個人資料</h1>
+        <!-- <h1>編輯個人資料</h1> -->
 
         <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
@@ -28,22 +28,22 @@
           {% else %}
               <img src="/static/img/Defuser.png" alt="預設頭像">
           {% endif %}
-          <label for="avatar">上傳新頭像</label>
-          <input type="file" name="avatar" id="avatar">
-        </div>
-        <div class="form-group">
+            <label for="avatar" class="avatar-upload-btn">更改頭像</label>
+            <input type="file" name="avatar" id="avatar" style="display: none;">
+          </div>
+        <div class="form-group grid-align">
           <label for="username">名稱：</label>
           <input type="text" name="username" id="username" value="{{ request.user.username }}">
         </div>
-        <div class="form-group">
+        <div class="form-group grid-align">
           <label for="nickname">暱稱：</label>
           <input type="text" name="nickname" id="nickname" value="{{ request.user.profile.nickname }}">
         </div>
-        <div class="form-group">
+        <div class="form-group grid-align">
           <label for="email">電子郵件：</label>
           <input type="email" name="email" id="email" value="{{ request.user.email }}">
         </div>
-        <div class="form-group">
+        <div class="form-group grid-align">
           <label for="bio">自我介紹：</label>
           <textarea name="bio" id="bio" rows="5">{{ request.user.profile.bio }}</textarea>
         </div>
@@ -52,14 +52,14 @@
 
     <!-- 更新密碼 -->
     <div class="section">
-      <div class="section-header">變更密碼：</div>
+      <div class="section-header ">變更密碼：</div>
       <div class="section-body">
-        <div class="form-group">
+        <div class="form-group grid-align">
           <label for="new_password">新密碼：</label>
           <input type="password" name="new_password" id="new_password">
         </div>
-        <div class="form-group">
-          <label for="confirm_password">確認新密碼：</label>
+        <div class="form-group grid-align">
+          <label for="confirm_password ">確認新密碼：</label>
           <input type="password" name="confirm_password" id="confirm_password">
         </div>
       </div>
@@ -69,12 +69,12 @@
     <div class="section">
       <div class="section-header">收件人資料：</div>
       <div class="section-body">
-        <div class="form-group">
-          <label for="address_name">姓名：</label>
+        <div class="form-group grid-align">
+          <label for="address_name row-align">姓名：</label>
           <input type="text" name="address_name" id="address_name" value="{{ user_address.name }}">
         </div>
-        <div class="form-group">
-          <label for="address_phone">電話：</label>
+        <div class="form-group grid-align">
+          <label for="address_phone row-align">電話：</label>
           <input type="text" name="address_phone" id="address_phone" value="{{ user_address.phone }}">
         </div>
       </div>
@@ -82,18 +82,18 @@
 
     <!-- 寄送地址 -->
     <div class="section">
-      <div class="section-header">寄送地址：</div>
+      <div class="section-header row-align">寄送地址：</div>
       <div class="section-body">
-        <div class="form-group">
-          <label for="address_city">縣市：</label>
+        <div class="form-group grid-align">
+          <label for="address_city row-align">縣市：</label>
           <select name="address_city" id="address_city">
             {% for key, val in city_choices %}
               <option value="{{ key }}" {% if key == user_address.city %}selected{% endif %}>{{ val }}</option>
             {% endfor %}
           </select>
         </div>
-        <div class="form-group">
-          <label for="address_detail">地址：</label>
+        <div class="form-group grid-align">
+          <label for="address_detail row-align">地址：</label>
           <input type="text" name="address_detail" id="address_detail" value="{{ user_address.address }}">
         </div>
       </div>
