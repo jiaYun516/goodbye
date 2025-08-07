@@ -260,8 +260,16 @@ def checkout_step2(request):
         messages.error(request, '訂單已處理或不存在')
         return redirect('order_list')
 
-    form_by_order = {order: OrderForm(user=request.user, shop=order.shop) for order in orders}
+    form_by_order = {order.shop.id: OrderForm(user=request.user, shop=order.shop) for order in orders}
     addresses = UserAddress.objects.filter(user=request.user)
+
+    #計算每張訂單的總價
+    order_totals = {}
+    for order in orders:
+        total = 0
+        for item in order.productorder_set.select_related('product').all():
+            total += item.product.price * item.quantity
+        order_totals[order.id] = total
 
     if request.method == 'POST':
         address_id = request.POST.get('address_id')
@@ -297,6 +305,7 @@ def checkout_step2(request):
         'orders': orders,
         'form_by_order': form_by_order,
         'addresses': addresses,
+        'order_totals': order_totals,
     })
 
 # -------------------------
