@@ -6,8 +6,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>編輯收物帖</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="{% static 'css/want_form.css' %}">
+    <link rel="stylesheet" href="{% static 'css/want_edit.css' %}">
     {% include 'common/header.html' %}
+    <style>
+        .left-col {
+            flex: 1;
+            max-width: 45%;
+        }
+        .right-col {
+            flex: 1;
+            max-width: 50%;
+        }
+        @media (max-width: 768px) {
+            .left-col, .right-col {
+                max-width: 100%;
+            }
+        }
+    </style>
 </head>
 <body>
 <div style="height: 48px;"></div>
@@ -17,29 +32,40 @@
     <h2 class="shop-title mb-4">編輯收物帖</h2>
     <div class="card shadow">
         <div class="card-body">
+            
             <form method="post" enctype="multipart/form-data">
                 {% csrf_token %}
                 {{ form.cover_index }}
                 {{ form.image_order }}
+            
 
-                <!-- 已上傳圖片-->
-                <div class="row">
-                    {% if want.images.all %}
-                    <h5>已上傳圖片</h5>
-                    <div class="row">
-                        {% for img in want.images.all %}
-                        <div class="col-md-4 mb-3">
-                            <img src="{{ img.img.url }}" class="img-fluid rounded">
-                            <a href="{% url 'delete_want_image' want.id img.id %}" class="btn btn-sm btn-danger mt-2">刪除圖片</a>
-                            {% if not img.is_cover %}
-                                <button type="submit" name="cover_set_id" value="{{ img.id }}" class="btn btn-sm btn-secondary mt-1">設為封面</button>             
-                            {% else %}
-                            <p class="text-success mt-1">✔️ 封面圖片</p>
-                            {% endif %}
+                <div class="d-flex flex-wrap gap-4">
+
+                    <!--左側圖片區-->
+                    <div class="left-col">
+
+                        {% if want.images.all %}
+                        <h5 class="d-none">已上傳圖片</h5>
+                        <div class="row">
+                            {% for img in want.images.all %}
+
+                            <div class="AA">
+                                <div class="image-box">
+                                    <img src="{{ img.img.url }}" class="img-fluid rounded image-preview">
+                                    
+                                    <a href="{% url 'delete_want_image' want.id img.id %}" class="btn btn-sm btn-danger mt-1 me-1">刪除圖片</a>
+
+                                    {% if not img.is_cover %}
+                                        <button type="submit" name="cover_set_id" value="{{ img.id }}" class="btn btn-sm btn-success mt-1">設為封面</button>
+                                    {% else %}
+                                        <p class="text-success mt-1 mb-0">✔️ 封面圖片</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            {% endfor %}
                         </div>
-                        {% endfor %}
-                    </div>
-                    {% endif %}
+                        {% endif %}
 
                     <!-- 主圖預覽區 -->
                     <div id="main-image-preview" class="mb-3"></div>
@@ -48,19 +74,22 @@
 
                     <!-- 新增圖片區 -->
                     <div class="mb-3 mt-4">
-                        <label for="images" class="form-label">新增圖片：</label>
-                        <input type="file" name="images" id="id_images" class="form-control" multiple>
+                        <input type="file" name="images" id="id_images" class="d-none" multiple>
+                        <label for="id_images" class="btn btn-sm btn-primary">新增圖片</label>
+                    </div>
+                        
                     </div>
 
-                    <!-- 右側：標題 權限 標籤 -->
-                    <div class="col-md-7">
-                    <div class="mb-3">
+                    <!-- 右側表單 -->
+                    <div class="right-col">
+                        <div class="mb-3">
                             <label for="id_title" class="form-label">標題：</label>
                             {{ form.title }}
                             {% if form.title.errors %}
                                 <div class="text-danger">{{ form.title.errors }}</div>
                             {% endif %}
                         </div>
+
                         <div class="mb-3">
                             <label class="form-label">權限</label>
                             {{ form.permission }}
@@ -71,43 +100,35 @@
 
                         <div class="mb-3">
                             <label class="form-label">標籤(可自行新增)</label>
-
-                            <!-- 輸入標籤 -->
                             <input type="text" id="tag-input" class="form-control mb-2" placeholder="輸入標籤並按 Enter">
-
-                            <!-- JS 提示標籤 -->
                             <ul id="tag-suggestions" class="list-group position-absolute z-3"></ul>
-
-                            <!-- 顯示已加入的標籤 -->
                             <div class="d-flex flex-wrap gap-2 mb-2" id="tag-area">
                                 {% if want %}
                                     {% for tag_rel in want.wanttag_set.all %}
-                                        <span class="badge bg-light text-dark tag-badge me-1" data-tag="{{ tag_rel.tag.name }}">{{ tag_rel.tag.name }}
+                                        <span class="badge bg-light text-dark tag-badge me-1" data-tag="{{ tag_rel.tag.name }}">
+                                            {{ tag_rel.tag.name }}
                                             <img src="{% static 'img/x.png' %}" alt="刪除" class="ms-1" style="cursor:pointer; width:12px; height:12px;">
                                         </span>
                                     {% endfor %}
                                 {% endif %}
                             </div>
-                            <!-- 隱藏欄位：用來送出標籤字串 -->
                             {{ form.tag_names }}
+                        </div>
+
+                        <div class="mt-4">
+                            <label for="id_post_text" class="form-label">文字：</label>
+                            {{ form.post_text }}
+                            {% if form.post_text.errors %}
+                                <div class="text-danger">{{ form.post_text.errors }}</div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
 
-                <!-- 文字輸入區 -->
-                <div class="mt-4">
-                    <label for="id_post_text" class="form-label">文字：</label>
-                    {{ form.post_text }}
-                    {% if form.post_text.errors %}
-                        <div class="text-danger">{{ form.post_text.errors }}</div>
-                    {% endif %}
-                </div>
-
-
                 <!-- 按鈕區 -->
                 <div class="d-flex justify-content-end gap-2 mt-4">
                     <a href="{% url 'want_detail' want.id %}" class="btn btn-secondary">取消</a>
-                    <button type="submit" class="btn btn-primary">確認</button>
+                    <button type="submit" class="btn btn-primary btn-confirm">確認</button>
                 </div>
 
             </form>
@@ -117,5 +138,16 @@
 
 <script src="{% static 'js/edit_want.js' %}"></script>
 <script src="{% static 'js/tag_input.js' %}"></script>
+
+<script>
+    document.getElementById('id_images').addEventListener('change', function (event) {
+        const label = document.getElementById('upload-label');
+        if (event.target.files.length > 0) {
+            label.textContent = '主圖';
+        } else {
+            label.textContent = '新增圖片：';
+        }
+    });
+</script>
 </body>
 </html>

@@ -1,0 +1,197 @@
+/* 整體背景 */
+body {
+    padding-top: 40px;
+    background-color: #fff9ed;
+    font-family: 'Noto Sans TC', sans-serif;
+}
+
+/* 標題樣式 */
+.shop-title {
+    font-weight: bold;
+    color: #1d3557;
+}
+
+/* 卡片樣式 */
+.card {
+    border: 4px solid #cbd6e2;
+    border-radius: 12px;
+    border: none;
+}
+
+/* 表單標籤 */
+.form-label {
+    font-weight: bold;
+    color: #444;
+}
+
+/* 右側欄寬度調整 */
+.col-md-7 {
+    max-width: 100%;
+}
+
+/* 預覽圖片 */
+#main-image-preview img,
+#image-preview img,
+img.img-fluid {
+    border-radius: 8px;
+    width: 100%;
+    object-fit: cover;
+}
+
+/* 已上傳圖片區塊間距 */
+.col-md-4 {
+    padding: 0 10px;
+}
+
+/* 封面提示文字 */
+.text-success {
+    font-weight: bold;
+}
+
+/* 按鈕區 */
+.btn {
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+/* 標籤 badge */
+.tag-badge {
+    display: inline-flex;
+    align-items: center;
+    background-color: #f1f3f5;
+    border-radius: 16px;
+    padding: 6px 10px;
+    font-size: 14px;
+    line-height: 1;
+}
+
+/* 標籤刪除按鈕 */
+.tag-badge img {
+    margin-left: 6px;
+}
+
+/* 新增圖片預覽 */
+#image-preview {
+    gap: 10px;
+}
+
+#tag-suggestions {
+    max-height: 160px;
+    overflow-y: auto;
+}
+
+/* 響應式調整：表單欄位之間留白 */
+@media (min-width: 768px) {
+    .row > .col-md-4,
+    .row > .col-md-7 {
+        margin-top: 20px;
+    }
+}
+
+h5:contains("已上傳圖片") {
+    display: none;
+}
+
+/* 用 Flex 排版讓圖片與欄位左右分佈 */
+.card-body > form > .row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+/* 左右欄位設定 */
+.card-body > form > .row > .left-col {
+    flex: 1 1 40%;
+    min-width: 280px;
+}
+
+.card-body > form > .row > .right-col {
+    flex: 1 1 55%;
+    min-width: 300px;
+}
+
+/* 表單間距調整 */
+.right-col .mb-3,
+.right-col .mt-4 {
+    margin-bottom: 1.5rem;
+}
+
+#main-image-preview {
+    width: 300px;
+    height: 300px;
+    overflow: hidden;      /* 防止圖片超出容器 */
+    border-radius: 8px;
+    box-shadow: 0 0 8px rgba(0,0,0,0.15);
+    margin-bottom: 1rem;
+}
+
+#main-image-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;     /* 保持容器填滿並裁切超出部分 */
+    display: block;
+}
+
+.AA {
+    width: 150px;
+    height: 200px;
+}
+
+.image-box {
+    width: 150px;
+    height: 200px;
+    border: 1px solid #ffffff;
+    padding: 5px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: start;
+    text-align: center;
+}
+
+.image-preview {
+    max-width: 100px;
+    max-height: 100px;
+    object-fit: contain;
+    margin-bottom: 5px;
+}
+
+
+
+
+/* 按鈕樣式 */
+.btn-secondary {
+    font-size: 1.2rem;
+    padding: 10px 30px;
+}
+.btn-outline-secondary {
+    border-radius: 8px;
+    color: #f58da8;
+    border-color: #f58da8;
+    background-color: white;
+}
+
+.btn-outline-secondary:hover {
+    background-color: #f58da8;
+    color: white;
+}
+
+
+
+
+.btn-confirm {
+    font-size: 1.2rem;
+    padding: 10px 30px;
+}
+
+.btn-confirm {
+    background-color: #f58da8;
+    border-color: #f58da8;
+    border-radius: 8px;
+}
+
+.btn-confirm:hover {
+    background-color: #f47294;
+    border-color: #f47294;
+}
