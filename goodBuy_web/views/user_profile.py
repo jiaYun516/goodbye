@@ -34,8 +34,8 @@ def view_profile(request, user):
         else:
             block_reason = None
     if request.user.is_authenticated:
-        user_shops = get_hot_shops(request=request, owner=profile_user, limit=10)
-        user_wants = get_hot_wants(request=request, owner=profile_user, limit=10)
+        user_shops = personalized_shop_recommendation(request=request, owner=profile_user, limit=10)
+        user_wants = personalized_want_recommendation(request=request, owner=profile_user, limit=10)
     else:
         user_shops = get_hot_shops(request=request, owner=profile_user, limit=10)
         user_wants = get_hot_wants(request=request, owner=profile_user, limit=10)

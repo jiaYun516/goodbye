@@ -1,7 +1,8 @@
 from django.db import models
 from .purchase_intent import *
 from goodBuy_shop.models import Product
-from django.db.models import Sum
+from .purchase_intent import PurchaseIntent
+from django.db.models import Q
 
 # -------------------------
 # 多帶表product
@@ -12,24 +13,7 @@ class IntentProduct(models.Model):
     quantity = models.IntegerField()
 
     class Meta:
-        unique_together = ('intent', 'product')
-
-    # -------------------------
-    # 商品已在多帶清單則修改數量
-    # -------------------------
-    def add_or_update_product(self, product, quantity):
-        obj, created = IntentProduct.objects.get_or_create(intent=self, product=product)
-
-        current_total = IntentProduct.objects.filter(product=product).exclude(id=obj.id).aggregate(
-            total=Sum('quantity')
-        )['total'] or 0
-
-        available_qty = max(product.stock - current_total, 0)
-
-        if created:
-            obj.quantity = min(quantity, available_qty)
-        else:
-            obj.quantity = min(obj.quantity + quantity, available_qty)
-
-        obj.save()
-        return obj
+        constraints = [
+            models.UniqueConstraint(fields=['intent', 'product'], name='uniq_intent_product'),
+            models.CheckConstraint(check=Q(quantity__gte=0), name='qty_nonnegative'),
+        ]

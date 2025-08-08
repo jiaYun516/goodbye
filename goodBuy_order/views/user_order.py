@@ -172,6 +172,7 @@ def checkout_step1(request):
             return redirect('cart')
         if product.shop.permission_id != 1:
             messages.error(request, f'{product.shop.name} 商店已下架')
+            return redirect('cart')
         if product.shop.is_end:
             messages.error(request, f'{product.shop.name} 商店尚未開啟或已結束')
             return redirect('cart')
@@ -199,107 +200,88 @@ def checkout_step1(request):
         messages.error(request, '無有效商品')
         return redirect('cart')
 
-    # created_order_ids = []
-
-    # try:
-    #     with transaction.atomic():
-    #         for shop, items in shop_groups.items():
-    #             if shop.purchase_priority_id != 1:
-    #                 # 多帶商店 → 加入 Intent 記錄
-    #                 shop = maybe_extend_rush(shop)
-    #                 intent, _ = PurchaseIntent.objects.get_or_create(user=request.user, shop=shop)
-
-    #                 for item in items:
-    #                     product = item['product']
-    #                     qty = item['quantity']
-    #                     intent_product, created = IntentProduct.objects.get_or_create(intent=intent, product=product)
-
-    #                     current_total = IntentProduct.objects.filter(product=product).exclude(id=intent_product.id).aggregate(
-    #                         total=Sum('quantity')
-    #                     )['total'] or 0
-    #                     available_qty = max(product.stock - current_total, 0)
-
-    #                     if created:
-    #                         intent_product.quantity = min(qty, available_qty)
-    #                     else:
-    #                         intent_product.quantity = min(intent_product.quantity + qty, available_qty)
-
-    #                     intent_product.save()
-
-    #                     if qty > available_qty:
-    #                         messages.warning(request, f'{product.name} 庫存不足，已調整為 {available_qty} 件')
-
-    #                 messages.success(request, f'{shop.name} 多帶已加入，請等待分配結果')
-    #                 continue
-
-    #             # 一般商店 → 建立訂單
-    #             total = sum(item['product'].price * item['quantity'] for item in items)
-
-    #             order = Order.objects.create(
-    #                 user=request.user,
-    #                 shop=shop,
-    #                 total=total,
-    #                 order_state_id=1,
-    #                 pay_state_id=10,
-    #                 second_supplement=0,
-    #                 pay=None
-    #             )
-
-    #             for item in items:
-    #                 ProductOrder.objects.create(order=order, product=item['product'], quantity=item['quantity'])
-
-    #             created_order_ids.append(order.id)
-    #             messages.success(request, f'{shop.name} 訂單已建立，請選擇付款與地址')
-
-    #         if cart_items:
-    #             cart_items.delete()
-
-    #         # 有建立 order → 進入 Step2
-    #         if created_order_ids:
-    #             request.session['pending_order_ids'] = created_order_ids
-    #             return redirect('checkout_address_payment')
-
-    #         # 全部是多帶 → 結束流程，不進入 Step2
-    #         return redirect('order_list')
-
-    # except Exception as e:
-    #     messages.error(request, f'建立訂單失敗：{e}')
-    #     return redirect('cart')
         # 如果是第二次送出（確認下單）
     if request.method == 'POST' and 'confirm_checkout' in request.POST:
         created_order_ids = []
+        print(shop_groups)
         try:
             with transaction.atomic():
                 for shop, items in shop_groups.items():
                     if shop.purchase_priority_id != 1:
-                        # 多帶商店
+                        # 多帶商店（搶購）
                         shop = maybe_extend_rush(shop)
-                        intent, _ = PurchaseIntent.objects.get_or_create(user=request.user, shop=shop)
+
+                        # 建立/取得本次多帶（行為本身不扣庫存）
+                        intent, _ = PurchaseIntent.objects.get_or_create(
+                            user=request.user,
+                            shop=shop,
+                        )
+                        print(intent)
+
+                        affected_product_ids = []
 
                         for item in items:
-                            product = item['product']
-                            qty = item['quantity']
-                            intent_product, created = IntentProduct.objects.get_or_create(intent=intent, product=product)
+                            # 重新查商品 + 加鎖，避免併發問題；不要用 is_delete 擠掉資料
+                            try:
+                                product = (Product.objects
+                                        .select_for_update()
+                                        .select_related('shop')
+                                        .get(pk=item['product'].id))
+                            except Product.DoesNotExist:
+                                raise ValueError(f'商品不存在或已被刪除：{item["product"].name}')
 
-                            current_total = IntentProduct.objects.filter(product=product).exclude(id=intent_product.id).aggregate(
-                                total=Sum('quantity')
-                            )['total'] or 0
+                            # 商品必須屬於迭代中的商店
+                            if product.shop_id != shop.id:
+                                raise ValueError(f'{product.name} 不屬於商店 {shop.name}')
+
+                            # 數量檢查
+                            qty = int(item.get('quantity') or 0)
+                            if qty <= 0:
+                                raise ValueError(f'{product.name} 數量需大於 0')
+
+                            # 取得/建立 IntentProduct
+                            # 關鍵：defaults 先給 quantity=0，避免 NOT NULL 錯誤
+                            ip, created = IntentProduct.objects.get_or_create(
+                                intent=intent,
+                                product=product,
+                                defaults={'quantity': 0}
+                            )
+                            # 再加鎖拿到最新行（避免 create 路徑沒鎖到）
+                            ip = IntentProduct.objects.select_for_update().get(pk=ip.pk)
+
+                            # 計算目前自己已多帶數量
+                            current_total = (
+                                    IntentProduct.objects
+                                    .filter(product=product, intent__user=request.user)
+                                    .aggregate(total=Sum('quantity'))['total'] or 0
+                                )
+
+                            # 可分配數量 = 現庫存 - 其他人已意向的數量（不扣庫存）
                             available_qty = max(product.stock - current_total, 0)
 
-                            if created:
-                                intent_product.quantity = min(qty, available_qty)
-                            else:
-                                intent_product.quantity = min(intent_product.quantity + qty, available_qty)
+                            # 目標數量 = 既有意向 + 本次新增，封頂於可分配數量
+                            new_qty = min(ip.quantity + qty, available_qty)
 
-                            intent_product.save()
+                            if new_qty != ip.quantity:
+                                ip.quantity = new_qty
+                                ip.save(update_fields=['quantity'])
 
                             if qty > available_qty:
+                                print(f'{product.name} 庫存不足，已調整為 {available_qty} 件')
                                 messages.warning(request, f'{product.name} 庫存不足，已調整為 {available_qty} 件')
 
+                            affected_product_ids.append(product.id)
+
+                        # 刪除購物車中「已加入搶購」的商品項目（不影響其他商店/商品）
+                        if cart_items:
+                            cart_items.filter(product_id__in=affected_product_ids).delete()
+
+
+                        print(f'{shop.name} 搶購意向已更新，包含商品：{", ".join([item["product"].name for item in items])}')
                         messages.success(request, f'{shop.name} 多帶已加入，請等待分配結果')
                         continue
 
-                    # 建立一般訂單
+                    # 一般訂單（會扣庫存）
                     total = sum(item['product'].price * item['quantity'] for item in items)
 
                     order = Order.objects.create(
@@ -315,8 +297,15 @@ def checkout_step1(request):
                     for item in items:
                         ProductOrder.objects.create(order=order, product=item['product'], quantity=item['quantity'])
 
+                        # 扣庫存（加鎖 + update）
+                        rows = Product.objects.filter(
+                            id=item['product'].id, is_delete=False,
+                            stock__gte=item['quantity']
+                        ).update(stock=F('stock') - item['quantity'])
+                        if rows == 0:
+                            raise ValueError(f'{item["product"].name} 庫存不足')
+
                     created_order_ids.append(order.id)
-                    messages.success(request, f'{shop.name} 訂單已建立，請選擇付款與地址')
 
                 if cart_items:
                     cart_items.delete()
@@ -325,9 +314,11 @@ def checkout_step1(request):
                     request.session['pending_order_ids'] = created_order_ids
                     return redirect('checkout_address_payment')
 
-                return redirect('order_list')
+                # 走到這裡代表這次都是「多帶」
+                return redirect('cart')
 
         except Exception as e:
+            print(e)
             messages.error(request, f'建立訂單失敗：{e}')
             return redirect('cart')
 

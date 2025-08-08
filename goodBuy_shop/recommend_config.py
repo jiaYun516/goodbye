@@ -11,32 +11,20 @@ HOT_WEIGHTS = {
 # 個性化推薦權重
 # -------------------------
 PERSONAL_WEIGHTS = {
-    'search_keyword': 5,          # 每筆搜尋對應店加 5 分
-    'viewed_related_multiplier': 0.8,  # 已看過店提取的關鍵字打分 x 0.8
-    'traded_shop_bonus': 1,       # 活躍商店加分
-}
-
-PERSONAL_PROPORTIONS = {
-    'search_history': 0.25,
-    'fav_related': 0.25,
-    'bought_related': 0.25,
-    'viewed_related': 0.20,
-    'traded_shop': 0.05,
+    'search_keyword': 9,               # 搜尋關鍵字 → 強烈意圖
+    'viewed_related_multiplier': 0.6,  # 瀏覽過 → 弱意圖
+    'traded_shop_bonus': 2.5,           # 曾購買過 → 高信任
+    'collected_shop_bonus': 1.8,        # 收藏過 → 中等意圖
+    'recent_new_shop_bonus': 0.8,       # 新店曝光 → 冷啟動幫助
 }
 
 # -------------------------
 # 關鍵字匹配打分
 # -------------------------
 KEYWORD_SCORES = {
-    'tags': 5,
-    'name': 3,
-    'introduce': 2,
-}
-
-KEYWORD_PROPORTIONS = {
-    'tags': 0.50,
-    'name': 0.30,
-    'introduce': 0.20,
+    'tags': 8,       # 精準分類
+    'name': 6,       # 店名相關
+    'introduce': 4,  # 內容相關
 }
 
 # -------------------------
@@ -49,4 +37,5 @@ RECOMMENDED_SHOP_WEIGHT_MULTIPLIER = 0.5  # 若已在近 7 天內推薦，則推
 # -------------------------
 SEARCH_HISTORY_DAYS = 3
 COLLECT_DAYS = 14
-VIEWED_SHOP_DAYS = 14
+VIEW_DAYS = 14
+ORDER_DAYS = 90

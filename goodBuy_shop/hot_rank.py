@@ -131,8 +131,12 @@ def get_hot_shops(limit=None, days=7, owner=None, keyword=None, tag=None, reques
         # 最後再切片
         ordered_ids = ordered_ids[:limit]
 
-    if not qs.exists():
-        qs = Shop.objects.filter(permission__id=1).order_by('-update')[: max(limit or 20, 20)]
+    if not qs.exists() and not (keyword or tag or owner):
+        exclude_ids = set(qs.values_list('id', flat=True))
+        qs = (Shop.objects
+            .filter(permission__id=1)
+            .exclude(id__in=exclude_ids)
+            .order_by('-date')[:limit or 20])
     # -------------------------
     # 回傳「有順序」的 QuerySet
     # -------------------------
