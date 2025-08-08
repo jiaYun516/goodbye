@@ -39,7 +39,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const coverFile = files[coverIdx];
     const coverReader = new FileReader();
     coverReader.onload = function(e) {
-      mainPreview.innerHTML = `<img src="${e.target.result}" style="max-height:140px;max-width:100%;object-fit:contain;border-radius:10px;">`;
+    mainPreview.innerHTML = `<img src="${e.target.result}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 10px;">`;
+
     };
     coverReader.readAsDataURL(coverFile);
 

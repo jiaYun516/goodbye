@@ -58,16 +58,22 @@
             
             <!-- 收物帖詳情 -->             
                 <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center bg-light">
-                        <h5 class="mb-0 d-none">收物帖詳情</h5>
-                        {% if request.user == want.user %}
-                        <div>
-                            <a href="{% url 'edit_want' want_id=want.id %}" class="btn btn-sm btn-outline-secondary">編輯</a>
-                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
-                                刪除
-                            </button>
+                    <div class="action-buttons d-flex gap-2 justify-content-end">
+                    {% if request.user == want.user %}
+                        <div class="action-buttons d-flex gap-2">
+                        <a href="{% url 'edit_want' want_id=want.id %}" class="action-btn edit-btn" title="編輯">
+                            <img src="{% static 'img/edit-text.png' %}" alt="編輯" class="icon-img"/>
+                        </a>
+                        <button type="button" class="action-btn delete-btn" title="刪除" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                            <img src="{% static 'img/delete.png' %}" alt="刪除" class="icon-img"/>
+                        </button>
                         </div>
-                        {% endif %}
+                    {% endif %}
+                    </div>
+
+                    <div class="card-header d-flex justify-content-between align-items-center bg-light">
+                        
+                        <h5 class="mb-0 d-none">收物帖詳情</h5> 
                     </div>
 
                     <div class="card-body">
