@@ -30,9 +30,12 @@
   <!-- 側邊彈出欄 -->
   <nav class="menu" id="menu">
 
-      <a href="{% url 'logout' %}">
-    <button class="logout-btn" aria-label="登出">登出</button>
-  </a>
+      {% if request.user.is_authenticated %}
+    <!-- 這裡是登入狀態下的選單 -->
+    <a href="{% url 'logout' %}">
+        <button class="logout-btn" aria-label="登出">登出</button>
+    </a>
+{% endif %}
   {% if request.user.is_authenticated %}
     <div class="user-info1">
       {% if user.profile.avatar %}
@@ -104,7 +107,7 @@
       <a href="/register/" class="Options">註冊</a>
       <p>（咳咳註冊一個花不了幾分鐘）</p>
     </div>
-    <div class="tellme">
+    <div class="sidebar-bottom">
       <hr/>
       <p>問題回饋 GoodBuy114509@gmail.com</p>
       <p>追蹤我們：
