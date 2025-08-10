@@ -14,37 +14,54 @@ from ..rush_utils import *
 from utils import *
 # -------------------------
 # 訂單顯示 - 全部 - 分類+all
+# url參數傳入說明：?state=1&?role=seller
 # -------------------------
 @login_required(login_url='login')
 def order_list(request):
-    state = request.GET.get('state')
-    shop = request.GET.get('shop')
+    state = request.GET.get('state')    # 狀態篩選，可能的值有 '1', '2', ..., '6'，或 '7' 代表已取消
+    shop_id = request.GET.get('shop')   # 商店篩選，傳入商店ID
+    role = request.GET.get('role', 'buyer')  # 角色篩選，可能的值有 'buyer' 或 'seller'
 
-    orders = Order.objects.filter(user=request.user)
+    # 預設空 QuerySet
+    orders = Order.objects.none()
+    shop = None
 
-    if shop:
+    if role == 'buyer':
+        # 查自己買的
+        orders = Order.objects.filter(user=request.user)
+    elif role == 'seller':
+        # 查自己賣出的
+        orders = Order.objects.filter(shop__owner=request.user)
+
+    # 商店篩選
+    if shop_id:
         try:
-            shop = Shop.objects.get(id=shop)
-        except:
+            shop = Shop.objects.get(id=shop_id)
+        except Shop.DoesNotExist:
             messages.error(request, "商店不存在")
             return redirect('home')
-        
-        if shop.owner != request.user:
-            messages.error(request, "無權查看此商店的訂單")
-            return redirect('home')
-        
-        if shop.permission not in [1, 2]:
-            messages.error(request, "商店不存在")
-            return redirect('home')
-        
+
+        if role == 'seller':
+            # 賣家模式檢查店主
+            if shop.owner != request.user:
+                messages.error(request, "無權查看此商店的訂單")
+                return redirect('home')
+        else:
+            # 買家模式檢查店是否公開
+            if shop.permission not in [1, 2]:
+                messages.error(request, "商店不存在")
+                return redirect('home')
+
         orders = orders.filter(shop=shop)
 
+    # 狀態篩選
     if state:
         if state == '7':
             orders = orders.filter(order_state_id__in=[7, 8, 9, 10])
         else:
             orders = orders.filter(order_state_id=state)
 
+    # 標題設定
     if state in ['7', '8', '9', '10']:
         title = '已取消'
     elif state:
@@ -52,7 +69,13 @@ def order_list(request):
     else:
         title = '全部'
 
-    return render(request, 'order_list.html', {'title': title, 'orders': orders, 'shop': shop})
+    return render(request, 'order_list.html', {
+        'title': title,
+        'orders': orders,
+        'shop': shop,
+        'role': role
+    })
+
 # -------------------------
 # 訂單顯示 - 單一
 # -------------------------
