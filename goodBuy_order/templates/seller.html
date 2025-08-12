@@ -21,14 +21,9 @@
     </div>
   </div>
 
-  <script>
-    // 後端 view 傳過來的三個 tab HTML
-    const tabContents = {
-      order: `{{ tab_order|safe }}`,
-      payment: `{{ tab_payment|safe }}`,
-      shipping: `{{ tab_shipping|safe }}`
-    };
-  </script>
+  <div id="tab-order" style="display:none;">{{ tab_order|safe }}</div>
+  <div id="tab-payment" style="display:none;">{{ tab_payment|safe }}</div>
+  <div id="tab-shipping" style="display:none;">{{ tab_shipping|safe }}</div>
   <script src="{% static 'js/sellerbuyer.js' %}"></script>
 </body>
 </html>

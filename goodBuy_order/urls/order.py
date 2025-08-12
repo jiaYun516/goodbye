@@ -1,6 +1,6 @@
 from django.urls import path
 from goodBuy_order.views import *
-from goodBuy_order.views.seller_v import *
+from goodBuy_order.views.seller_view import *
 urlpatterns = [
     path('list/', order_list, name='buyer_order_list'),
     path('detail/<int:order_id>/', order_detail, name='order_detail'),
