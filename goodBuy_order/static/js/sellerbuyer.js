@@ -1,6 +1,8 @@
-function showTab(tab) {
-  document.getElementById('seller-content').innerHTML = tabContents[tab];
+function showTab(tabName) {
+    const sellerContent = document.getElementById("seller-content");
+    sellerContent.innerHTML = document.getElementById("tab-" + tabName).innerHTML;
 }
+
 
 document.querySelectorAll('.action-btn').forEach(button => {
   button.addEventListener('click', () => {
