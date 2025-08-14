@@ -44,10 +44,16 @@
         <img src="/static/img/Defuser.png" class="avatar">
       {% endif %}
       <div class="name-edit">
-        <h3>{{ request.user.username }}</h3>
+        <h3 class="user-name">
+        <a href="{% url 'view_profile' request.user.id %}" class="name-link">
+          {{ request.user.profile.nickname|default:request.user.username }}
+        </a>
+      </h3>
         <a href="/user/editprofile/">點擊編輯個人資料&gt;</a>
+        
       </div>
     </div>
+    
     <!-- 分組功能區 -->
     <ul class="sidebar-links">
       <br>
