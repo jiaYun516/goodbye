@@ -10,13 +10,13 @@
 
           <div class="d-flex">
             <!-- 確認接單 -->
-            <form method="post" action="{% url 'confirm_order' item.id %}" class="me-2">
+            <form method="post"  class="me-2">
               {% csrf_token %}
               <button type="submit" class="btn btn-success btn-sm">確認接單</button>
             </form>
 
             <!-- 拒絕接單 -->
-            <form method="post" action="{% url 'reject_order' item.id %}">
+            <form method="post">
               {% csrf_token %}
               <button type="submit" class="btn btn-danger btn-sm">拒絕接單</button>
             </form>
