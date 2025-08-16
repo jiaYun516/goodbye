@@ -55,12 +55,13 @@
       <li><a href="{% url 'my_shops_collected' %}">收藏</a></li>
       <li><a href="#">記帳本</a></li>
       <li><a href="{% url 'blacklist' %}">黑名單</a></li>
+      <li><a href="{% url 'view_profile' request.user.id %}">我的賣場</a></li>
+      <li><a href="{% url 'payment_accounts' %}">管理收款方式</a></li>
     </ul>
     <hr>
     <ul class="sidebar-links">
       <br>
       <li><a href="/shop/add/">新增賣場</a></li>
-      <li><a href="{% url 'view_profile' request.user.id %}">我的賣場</a></li>
       <li><a href="#">賣方管理</a></li>
     </ul>
     <hr>
