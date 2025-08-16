@@ -87,8 +87,13 @@ def get_hot_wants(limit=None, days=7, owner=None, keyword=None, tag=None, reques
             ordered_ids += fallback_ids
         ordered_ids = ordered_ids[:limit]
     
-    if not qs.exists():
-        qs = Want.objects.filter(permission__id=1).order_by('-date')[: max(limit or 20, 20)]
+    if not qs.exists() and not (keyword or tag or owner):
+        exclude_ids = set(qs.values_list('id', flat=True))
+        qs = (Want.objects
+            .filter(permission__id=1)
+            .exclude(id__in=exclude_ids)
+            .order_by('-date')[:limit or 20])
+
 
     # -------------------------
     # Step 4: 保序 QuerySet

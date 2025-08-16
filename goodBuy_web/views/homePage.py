@@ -30,12 +30,17 @@ def homePage(request):
     #如果搜尋有東西 就開始搜尋商店/收物帖/tag
     if q:
         # 查詢符合關鍵字的 Shop
+        # 查詢符合關鍵字的 Want
+        if request.user.is_authenticated:
+            shops = personalized_shop_recommendation(request=request, keyword=q, limit=10)
+            wants = personalized_want_recommendation(request=request, keyword=q, limit=10)
+
         shops = get_hot_shops(request=request, keyword=q, limit=10)
+        wants = get_hot_wants(request=request, keyword=q, limit=10)
+
         for shop in shops:
             shop.post_type = 'shop'
 
-        # 查詢符合關鍵字的 Want
-        wants = get_hot_wants(request=request, keyword=q, limit=10)
         for want in wants:
             want.post_type = 'want'
 
@@ -50,8 +55,8 @@ def homePage(request):
 
     #篩選
     if request.user.is_authenticated:
-        shops = get_hot_shops(request=request, limit=10)
-        wants = get_hot_wants(request=request, limit=10)
+        shops = personalized_shop_recommendation(request=request, limit=10)
+        wants = personalized_want_recommendation(request=request, limit=10)
 
     else:
         # 未登入使用者直接看熱門

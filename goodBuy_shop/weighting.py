@@ -1,221 +1,184 @@
 from collections import defaultdict
 from datetime import timedelta
-from django.forms import BooleanField
 from django.utils import timezone
-from django.db.models import Q, Case, When
+from django.db.models import Q, Case, When, IntegerField
 
-from goodBuy_shop.hot_rank import get_hot_shops
-from goodBuy_shop.models import Shop, ShopFootprints, ShopTag, ShopCollect
-from goodBuy_order.models import ProductOrder
-from goodBuy_web.models import SearchHistory, Blacklist
-from goodBuy_shop.recommend_config import (
-    PERSONAL_WEIGHTS, PERSONAL_PROPORTIONS,
-    KEYWORD_SCORES, KEYWORD_PROPORTIONS,
-    RECOMMENDED_SHOP_WEIGHT_MULTIPLIER,
-    SEARCH_HISTORY_DAYS, COLLECT_DAYS, VIEWED_SHOP_DAYS
+from goodBuy_shop.models import (
+    Shop, ShopFootprints, ShopTag, ShopRecommendationHistory
 )
-from goodBuy_shop.models import ShopRecommendationHistory
+from goodBuy_order.models import ProductOrder
+from goodBuy_web.models import SearchHistory
 from goodBuy_web.utils import get_blocked_user_ids
-from goodBuy_shop.shop_utils import shop_is_active
+from goodBuy_shop.hot_rank import get_hot_shops
+from goodBuy_shop.recommend_config import (
+    PERSONAL_WEIGHTS, KEYWORD_SCORES, RECOMMENDED_SHOP_WEIGHT_MULTIPLIER,
+    SEARCH_HISTORY_DAYS, VIEW_DAYS, ORDER_DAYS,
+)
 
-# 過濾
-def filter_shops(user, excluded_owner_ids, keywords=None, tags=None, owner=None, exclude_seen=False):
-    if owner and owner.id in excluded_owner_ids:
+def personalized_shop_recommendation(request, keyword=None, tag=None, owner=None, exclude_seen=False, limit=20):
+    user = getattr(request, 'user', None)
+    if not user or not user.is_authenticated:
         return Shop.objects.none()
-    
-    if excluded_owner_ids:
-        shops = Shop.objects.exclude(owner_id__in=excluded_owner_ids)
-    else:
-        shops = Shop.objects.filter(permission__id=1)
-    
-    if owner:
-        if owner == user:
-            # 若 owner 是本人 → 顯示所有 owner 的商店（無視黑名單與截止）
-            # 基本走不到
-            now = timezone.now()
-            shops = (
-                Shop.objects.filter(owner=owner)
-                .annotate(
-                    is_end_db=Case(
-                        When(end_time__isnull=False, end_time__lte=now, then=True),
-                        default=False,
-                        output_field=BooleanField()
-                    )
-                )
-                .order_by('is_end_db', '-update')
-            )
-            return shops
-        else:
-            shops = shops.filter(owner=owner)
-            print("owner 篩選，shops 數量：", shops.count())
 
-    # kw 篩選
-    if keywords:
-        shops = shops.filter(
-            Q(name__icontains=keywords) | 
-            Q(introduce__icontains=keywords) |
-            Q(product__name__icontains=keywords) | 
-            Q(shoptag__tag__name__icontains=keywords), 
-            permission__id=1 ).distinct()
-    
-    # tag 篩選
-    if tags:
-        shops = shops.filter(shoptag__tag=tags, permission__id=1)
-
-    # 是否排除看過的店
-    if exclude_seen:
-        seen_ids = ShopFootprints.objects.filter(user=user).values_list('shop_id', flat=True)
-        shops = shops.exclude(id__in=seen_ids)
-
-    # 移除已截止商店
-    shops = [s for s in shops if shop_is_active(s)]
-
-    print("初步 shops 數量：", len(shops))
-    return shops
-
-# 評分
-def score(user, shops):
     now = timezone.now()
-    final_scores = defaultdict(float)
+    blocked_ids = set(get_blocked_user_ids(user))
 
-    recent_recommended_ids = set(
-        ShopRecommendationHistory.objects.filter(
+    # ---------------- filter ----------------
+    qs = Shop.objects.filter(permission__id=1)
+
+    # 進行中 or 近 3 天更新（讓新店也可進榜）
+    NEW_DAYS = 3
+    qs = qs.filter(
+        Q(start_time__lte=now, end_time__gte=now) |
+        Q(update__gte=now - timedelta(days=NEW_DAYS))
+    )
+
+    # 黑名單 & 自己（未指定 owner 時排除自己）
+    qs = qs.exclude(owner_id__in=blocked_ids)
+    if owner:
+        qs = qs.filter(owner=owner)
+    else:
+        qs = qs.exclude(owner=user)
+
+    # 單一 keyword / tag
+    if keyword:
+        qs = qs.filter(
+            Q(name__icontains=keyword) |
+            Q(introduce__icontains=keyword) |
+            Q(shoptag__tag__name__icontains=keyword) |
+            Q(owner__username__icontains=keyword)
+        )
+    if tag:
+        qs = qs.filter(shoptag__tag=tag)
+
+    qs = qs.distinct()
+    if not qs.exists():
+        # 無條件 → 最新公開店保底
+        if not (keyword or owner or tag):
+            return Shop.objects.filter(permission__id=1).order_by('-update')[: (limit or 20)]
+        return qs.none()
+
+    candidate_ids = list(qs.values_list('id', flat=True))
+    scores = {sid: 0.0 for sid in candidate_ids}
+
+    # ---------------- score ----------------
+    # 搜尋紀錄 + 入口 keyword
+    recent_searches = list(
+        SearchHistory.objects.filter(
+            user=user, searched_at__gte=now - timedelta(days=SEARCH_HISTORY_DAYS)
+        ).values_list('keyword', flat=True)
+    )
+    if keyword:
+        recent_searches.append(keyword)
+    recent_searches = [kw for kw in recent_searches if kw]
+
+    if recent_searches:
+        kw_base = (KEYWORD_SCORES['name'] + KEYWORD_SCORES['introduce'] + KEYWORD_SCORES['tags']) \
+                  * PERSONAL_WEIGHTS['search_keyword']
+        for kw in recent_searches:
+            matched_ids = set(qs.filter(
+                Q(name__icontains=kw) |
+                Q(introduce__icontains=kw) |
+                Q(shoptag__tag__name__icontains=kw) |
+                Q(owner__username__icontains=kw)
+            ).values_list('id', flat=True))
+            for sid in matched_ids:
+                scores[sid] += kw_base
+
+    # 最近看過的商店（弱）
+    viewed_shop_ids = set(
+        ShopFootprints.objects.filter(
             user=user,
-            recommended_at__gte=now - timedelta(days=7)
+            date__gte=now - timedelta(days=VIEW_DAYS),
+            shop_id__in=candidate_ids
         ).values_list('shop_id', flat=True)
     )
+    if viewed_shop_ids:
+        add_viewed = (KEYWORD_SCORES['name'] + KEYWORD_SCORES['introduce']) \
+                     * PERSONAL_WEIGHTS['viewed_related_multiplier']
+        for sid in viewed_shop_ids:
+            scores[sid] += add_viewed
 
-    # 搜尋紀錄
-    recent_searches = SearchHistory.objects.filter(
-        user=user,
-        searched_at__gte=now - timedelta(days=SEARCH_HISTORY_DAYS)
-    ).values_list('keyword', flat=True)
-
-    # 若有關鍵字，則使用關鍵字搜尋商店
-    for kw in recent_searches:
-        for shop in Shop.objects.filter(permission__id=1):
-            score = (
-                (kw in shop.name) * KEYWORD_SCORES['name'] * KEYWORD_PROPORTIONS['name'] +
-                (kw in shop.introduce) * KEYWORD_SCORES['introduce'] * KEYWORD_PROPORTIONS['introduce'] +
-                (ShopTag.objects.filter(shop=shop, tag__name=kw).exists()) * KEYWORD_SCORES['tags'] * KEYWORD_PROPORTIONS['tags']
-            )
-            final_scores[shop.id] += score * PERSONAL_WEIGHTS['search_keyword'] * PERSONAL_PROPORTIONS['search_history']
-
-    # 收藏的商店
-    collects = ShopCollect.objects.filter(
-        user=user,
-        date__gte=now - timedelta(days=COLLECT_DAYS)
-    ).values_list('shop_id', flat=True)
-    for sid in collects:
-        final_scores[sid] += 5 * PERSONAL_PROPORTIONS['fav_related']
-
-    # 曾購買過商品的商店
-    bought = ProductOrder.objects.filter(
-        order__user=user
-    ).values_list('product__shop_id', flat=True)
-    for sid in bought:
-        final_scores[sid] += 5 * PERSONAL_PROPORTIONS['bought_related']
-
-    # 看過的商店
-    viewed_shops = ShopFootprints.objects.filter(
-        user=user,
-        date__gte=now - timedelta(days=VIEWED_SHOP_DAYS)
-    ).values_list('shop_id', flat=True)
-
-    for sid in viewed_shops:
-        shop = Shop.objects.filter(id=sid, permission__id=1).first()
-        if not shop:
-            continue
-        score = (
-            KEYWORD_SCORES['name'] * KEYWORD_PROPORTIONS['name'] +
-            KEYWORD_SCORES['introduce'] * KEYWORD_PROPORTIONS['introduce']
-        )
-        final_scores[shop.id] += score * PERSONAL_WEIGHTS['viewed_related_multiplier'] * PERSONAL_PROPORTIONS['viewed_related']
-
-    # 曾交易店家（賣家）
-    traded_shops = Shop.objects.filter(
-        owner__in=ProductOrder.objects.filter(order__user=user).values_list('product__shop__owner', flat=True)
+    # 近期在這些商店下過單（強互動）
+    ordered_shop_ids = set(
+        ProductOrder.objects.filter(
+            order__user=user,
+            order__date__gte=now - timedelta(days=ORDER_DAYS),
+            product__shop_id__in=candidate_ids
+        ).values_list('product__shop_id', flat=True)
     )
-    for s in traded_shops:
-        final_scores[s.id] += PERSONAL_WEIGHTS['traded_shop_bonus'] * PERSONAL_PROPORTIONS['traded_shop']
+    if ordered_shop_ids:
+        add_order = KEYWORD_SCORES['tags'] * PERSONAL_WEIGHTS.get('traded_shop_bonus', 1.0)
+        for sid in ordered_shop_ids:
+            scores[sid] += add_order
 
-    # 降低已推薦過的店的權重
-    for sid in final_scores:
-        if sid in recent_recommended_ids:
-            final_scores[sid] *= RECOMMENDED_SHOP_WEIGHT_MULTIPLIER
-
-    print('final_scores:', dict(final_scores))
-    return final_scores
-
-# 排序
-def sorted_shops(shops, final_scores):
-    filtered_ids = [s.id for s in shops if shop_is_active(s)]
-    sorted_ids = sorted(filtered_ids, key=lambda sid: final_scores[sid], reverse=True)
-
-    print("活躍 shop 數量：", len(sorted_ids))
-    return sorted_ids
-
-# 數量補全
-def hot_completion(request, limit, sorted_ids, excluded_owner_ids):
-    if limit and len(sorted_ids) < limit:
-        current_ids = set(sorted_ids)
-
-        # 熱門推薦補滿，排除黑名單、自身、已推薦
-        hot_queryset = get_hot_shops(request=request)
-
-        # 過濾黑名單、自己、已推薦過的
-        hot_queryset = hot_queryset.exclude(
-            id__in=current_ids,
-            owner_id__in=excluded_owner_ids
+    # 新店微量加成（冷啟動）
+    EPS = float(PERSONAL_WEIGHTS.get('recent_new_shop_bonus', 0.0)) or 0.0
+    if EPS:
+        recent_shop_ids = set(
+            Shop.objects.filter(id__in=candidate_ids, update__gte=now - timedelta(days=NEW_DAYS))
+            .values_list('id', flat=True)
         )
+        for sid in recent_shop_ids:
+            scores[sid] += EPS
 
-        # 再做切片（避免 QuerySet + slice + filter 錯誤）
-        fallback_ids = list(hot_queryset.values_list('id', flat=True))[:limit - len(sorted_ids)]
-        sorted_ids += fallback_ids
-    
-    return sorted_ids
-    
+    # 最近已推過 → 降權
+    recent_reco = set(
+        ShopRecommendationHistory.objects.filter(
+            user=user, recommended_at__gte=now - timedelta(days=7)
+        ).values_list('shop_id', flat=True)
+    )
+    for sid in list(scores.keys()):
+        if sid in recent_reco:
+            scores[sid] *= RECOMMENDED_SHOP_WEIGHT_MULTIPLIER
 
+    # ---------------- 排序 + 多樣性（同 owner 最多 K 家） ----------------
+    prelim = sorted(candidate_ids, key=lambda sid: scores.get(sid, 0), reverse=True)
 
+    owner_by_shop = dict(Shop.objects.filter(id__in=prelim).values_list('id', 'owner_id'))
+    K_PER_OWNER = 5
+    picked, owner_count = [], defaultdict(int)
+    for sid in prelim:
+        oid = owner_by_shop.get(sid)
+        if owner_count[oid] < K_PER_OWNER:
+            picked.append(sid)
+            owner_count[oid] += 1
 
-# 主程式
-def personalized_shop_recommendation(request, keywords=None, tags=None, owner=None, exclude_seen=False, limit=20):
-    user = request.user
+    if exclude_seen:
+        picked = [sid for sid in picked if sid not in viewed_shop_ids]
 
-    if not user.is_authenticated:
+    # ---------------- 補滿（僅在沒有 keyword/owner/tag 時才用熱門補） ----------------
+    need = max((limit or 20) - len(picked), 0)
+    if need and not (keyword or owner or tag):
+        hot = (get_hot_shops(request=request)
+            .exclude(id__in=set(picked) | recent_reco)
+            .values_list('id', flat=True))
+        picked += list(hot)[:need]
+
+    if not picked:
         return Shop.objects.none()
+    if limit:
+        picked = picked[:limit]
 
-    # 黑名單與自己
-    blocked_ids = get_blocked_user_ids(user)
-    if not owner:
-        excluded_owner_ids = blocked_ids | {user.id}
-    else:
-        excluded_owner_ids = blocked_ids
-    print("excluded_owner_ids:", excluded_owner_ids)
-
-    shops = filter_shops(user, excluded_owner_ids, keywords=keywords, tags=tags, owner=owner, exclude_seen=exclude_seen)
-    
-    final_scores = score(user)
-    sorted_ids = sorted_shops(shops, final_scores)
-
-    # 若沒有關鍵字或 tag 或 owner，則補全熱門商店
-    if not (keywords or tags or owner):
-        sorted_ids = hot_completion(request, limit, sorted_ids, excluded_owner_ids)
-    
-    # 寫入推薦記錄
-    for shop in shops:
-        ShopRecommendationHistory.objects.create(
-            user=user,
-            shop=shop,
-            source='personalized',
-            keyword=', '.join(keywords) if keywords else None,
-        )
-
-    # 回傳 QuerySet 且保留分數順序
-    from django.db.models import Case, When, IntegerField
-    return Shop.objects.filter(id__in=sorted_ids).order_by(
-        Case(
-            *[When(id=pk, then=pos) for pos, pk in enumerate(sorted_ids)],
-            output_field=IntegerField()
-        )
+    # ---------------- 保序 + 寫歷史 ----------------
+    preserved = Case(
+        *[When(id=pk, then=pos) for pos, pk in enumerate(picked)],
+        output_field=IntegerField()
     )
+    qs_ordered = Shop.objects.filter(id__in=picked).order_by(preserved)
+
+    history = []
+    now_ts = timezone.now()
+    for s in qs_ordered:
+        history.append(ShopRecommendationHistory(
+            user=user,
+            shop=s,
+            recommended_at=now_ts,
+            source='personalized',
+            keyword=keyword or None,
+            algorithm_version='v2'
+        ))
+    if history:
+        ShopRecommendationHistory.objects.bulk_create(history, ignore_conflicts=True)
+
+    return qs_ordered

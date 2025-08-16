@@ -10,30 +10,18 @@ HOT_WEIGHTS = {
 # 個性化 Want 推薦權重
 # -------------------------
 PERSONAL_WEIGHTS = {
-    'search_keyword': 4,              # 搜尋關鍵字匹配
-    'viewed_related_multiplier': 0.7, # 觀看過相關 want 的關鍵字提取
-    'replied_related_bonus': 2,       # 回覆過相關 want 的 tag 關聯加分
-}
-
-PERSONAL_PROPORTIONS = {
-    'search_history': 0.4,
-    'viewed_related': 0.4,
-    'replied_related': 0.2,
+    'search_keyword': 9,              # 搜尋意圖最強，權重拉高
+    'viewed_related_multiplier': 0.6, # 看過=弱意圖，別蓋過搜尋/回覆
+    'replied_related_bonus': 3,       # 回覆過=中強意圖
 }
 
 # -------------------------
-# Want 關鍵字匹配加權
+# Want 關鍵字匹配加權（命中欄位的基礎分）
 # -------------------------
 KEYWORD_SCORES = {
-    'tags': 5,
-    'title': 3,
-    'post_text': 2,
-}
-
-KEYWORD_PROPORTIONS = {
-    'tags': 0.5,
-    'title': 0.3,
-    'post_text': 0.2,
+    'tags': 8,        # 標籤最精準
+    'title': 6,       # 標題次之
+    'post_text': 4,   # 內文再弱一些
 }
 
 # -------------------------

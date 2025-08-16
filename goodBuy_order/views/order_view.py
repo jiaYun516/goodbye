@@ -2,6 +2,8 @@ from django.shortcuts import *
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.utils import timezone
+from collections import defaultdict
+from django.db.models import Sum
 
 from goodBuy_shop.models import *
 from goodBuy_shop.views import shopInformation_many
@@ -12,37 +14,54 @@ from ..rush_utils import *
 from utils import *
 # -------------------------
 # 訂單顯示 - 全部 - 分類+all
+# url參數傳入說明：?state=1&?role=seller
 # -------------------------
 @login_required(login_url='login')
 def order_list(request):
-    state = request.GET.get('state')
-    shop = request.GET.get('shop')
+    state = request.GET.get('state')    # 狀態篩選，可能的值有 '1', '2', ..., '6'，或 '7' 代表已取消
+    shop_id = request.GET.get('shop')   # 商店篩選，傳入商店ID
+    role = request.GET.get('role', 'buyer')  # 角色篩選，可能的值有 'buyer' 或 'seller'
 
-    orders = Order.objects.filter(user=request.user)
+    # 預設空 QuerySet
+    orders = Order.objects.none()
+    shop = None
 
-    if shop:
+    if role == 'buyer':
+        # 查自己買的
+        orders = Order.objects.filter(user=request.user)
+    elif role == 'seller':
+        # 查自己賣出的
+        orders = Order.objects.filter(shop__owner=request.user)
+
+    # 商店篩選
+    if shop_id:
         try:
-            shop = Shop.objects.get(id=shop)
-        except:
+            shop = Shop.objects.get(id=shop_id)
+        except Shop.DoesNotExist:
             messages.error(request, "商店不存在")
             return redirect('home')
-        
-        if shop.owner != request.user:
-            messages.error(request, "無權查看此商店的訂單")
-            return redirect('home')
-        
-        if shop.permission not in [1, 2]:
-            messages.error(request, "商店不存在")
-            return redirect('home')
-        
+
+        if role == 'seller':
+            # 賣家模式檢查店主
+            if shop.owner != request.user:
+                messages.error(request, "無權查看此商店的訂單")
+                return redirect('home')
+        else:
+            # 買家模式檢查店是否公開
+            if shop.permission not in [1, 2]:
+                messages.error(request, "商店不存在")
+                return redirect('home')
+
         orders = orders.filter(shop=shop)
 
+    # 狀態篩選
     if state:
         if state == '7':
             orders = orders.filter(order_state_id__in=[7, 8, 9, 10])
         else:
             orders = orders.filter(order_state_id=state)
 
+    # 標題設定
     if state in ['7', '8', '9', '10']:
         title = '已取消'
     elif state:
@@ -50,7 +69,13 @@ def order_list(request):
     else:
         title = '全部'
 
-    return render(request, 'order_list.html', {'title': title, 'orders': orders, 'shop': shop})
+    return render(request, 'order_list.html', {
+        'title': title,
+        'orders': orders,
+        'shop': shop,
+        'role': role
+    })
+
 # -------------------------
 # 訂單顯示 - 單一
 # -------------------------
@@ -75,7 +100,8 @@ def order_detail(request, order):
         deposit_amount = order.total * deposit_ratio // 100
         tail_amount = (order.total - deposit_amount) + (order.second_supplement or 0)
 
-    return render(request, 'order_detail.html', {'product_orders': product_orders, 
+    return render(request, 'order_detail.html', {'order':order,
+                                                'product_orders': product_orders, 
                                                 'payment':payments,
                                                 'deposit_amount':deposit_amount,
                                                 'tail_amount':tail_amount})
@@ -151,42 +177,104 @@ def my_rush_status_in_intent(request, shop, intent):
 # -------------------------
 # 多帶進行中 - 購買優先表格
 # -------------------------
-@login_required
+@login_required(login_url='login')
 def purchase_priority_table(request, shop_id):
-    #找不到就拋 404
     shop = get_object_or_404(Shop, id=shop_id)
     priority_mode = 'amount' if shop.purchase_priority_id == 2 else 'quantity'
-    title = "金額多帶優先表格" if priority_mode == 'amount' else "數量多帶優先表格"
+    title = "金額多帶優先表" if priority_mode == 'amount' else "數量多帶優先表"
 
-    products = Product.objects.filter(shop=shop, is_delete=False)
-    product_ids = list(products.values_list('id', flat=True))
-    orders = Order.objects.filter(shop=shop, order_state__gte=2)  # 假設訂單狀態 2 以上為已下單
+    products = list(Product.objects.filter(shop=shop, is_delete=False).only('id','name','stock','price'))
+    if not products:
+        return render(request, 'priority_table.html', {
+            'shop': shop, 'priority_mode': priority_mode, 'priority_title': title,
+            'product_list': [], 'headers': [], 'rows': [], 'buyers_summary': []
+        })
 
-    buyer_map = {}
-    for order in orders:
-        user = order.buyer
-        if user.id not in buyer_map:
-            buyer_map[user.id] = {
-                'username': user.username,
+    product_ids = [p.id for p in products]
+    prod_by_id = {p.id: p for p in products}
+
+    intents = PurchaseIntent.objects.filter(shop=shop).select_related('user')
+    intent_ids = list(intents.values_list('id', flat=True))
+    user_by_intent = {pi.id: pi.user for pi in intents}
+
+    ip_qs = (IntentProduct.objects
+            .filter(intent_id__in=intent_ids, product_id__in=product_ids)
+            .values('intent_id','product_id')
+            .annotate(qty=Sum('quantity')))
+
+    # 聚合買家數據
+    buyers = {}
+    for row in ip_qs:
+        user = user_by_intent[row['intent_id']]
+        uid = user.id
+        pid = row['product_id']
+        qty = int(row['qty'] or 0)
+        if qty <= 0:
+            continue
+        if uid not in buyers:
+            buyers[uid] = {
+                'user': user,
+                'username': user.profile.nickname,
+                'per_product': defaultdict(int),
                 'total_qty': 0,
                 'total_amount': 0,
-                'product_quantities': {product.id: 0 for product in products},
             }
+        buyers[uid]['per_product'][pid] += qty
+        buyers[uid]['total_qty'] += qty
+        buyers[uid]['total_amount'] += qty * prod_by_id[pid].price
 
-        po_list = ProductOrder.objects.filter(order=order, product_id__in=product_ids)
-        for po in po_list:
-            idx = product_ids.index(po.product_id)
-            buyer_map[user.id]['product_quantities'][po.product_id] += po.qty
-            buyer_map[user.id]['total_qty'] += po.qty
-            buyer_map[user.id]['total_amount'] += po.qty * po.product.price
+    buyer_list = list(buyers.values())
+    key_field = 'total_amount' if priority_mode == 'amount' else 'total_qty'
+    buyer_list.sort(key=lambda b: (b[key_field], b['user'].id), reverse=True)
 
-    buyers = list(buyer_map.values())
-    buyers.sort(key=lambda x: x['total_amount' if priority_mode == 'amount' else 'total_qty'], reverse=True)
+    # 供上方總表使用的精簡資料
+    buyers_summary = [
+        {
+            'username': b['username'],
+            'total_amount': b['total_amount'],
+            'total_qty': b['total_qty'],
+            'product_quantities': dict(b['per_product']),  # 若你上方要看各品可留，否則可拿掉
+        }
+        for b in buyer_list
+    ]
+
+    # 生成分配矩陣（用「使用者名稱」填格）
+    alloc_col = {pid: [] for pid in product_ids}
+    for b in buyer_list:
+        for pid, want_qty in b['per_product'].items():
+            stock = prod_by_id[pid].stock
+            if stock <= 0:
+                continue
+            col = alloc_col[pid]
+            free_slots = max(stock - len(col), 0)
+            if free_slots <= 0:
+                continue
+            take = min(want_qty, free_slots)
+            col.extend([b['username']] * take)  # ← 用名稱，不是 rank
+
+    max_rows = max(p.stock for p in products) if products else 0
+    headers = [{'id': p.id, 'name': p.name, 'stock': p.stock} for p in products]
+
+    rows = []
+    for r in range(max_rows):
+        row_cells = []
+        for p in products:
+            s = p.stock
+            col = alloc_col[p.id]
+            if r >= s:
+                cell = '-'          # 超出庫存列
+            else:
+                cell = col[r] if r < len(col) else ''  # 有庫存未分配 → 空白
+            row_cells.append(cell)
+        rows.append(row_cells)
 
     return render(request, 'priority_table.html', {
         'shop': shop,
-        'buyers': buyers,
-        'product_list': products,
         'priority_mode': priority_mode,
-        'priority_title': title
+        'priority_title': title,
+        'product_list': products,
+        'headers': headers,
+        'rows': rows,
+        'buyers_summary': buyers_summary,
     })
+
