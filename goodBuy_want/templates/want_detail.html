@@ -23,7 +23,7 @@
                         <div class="d-flex align-items-center">
                             <img src="{{ want.user.profile.avatar.url }}" class="avatar">
                             <div>
-                                <strong>{{ want.user.username }}</strong>
+                                <strong>{{ want.user.profile.nickname }}</strong>
                                 <p class="text-muted mb-0 small">註冊時間：{{ want.user.date_joined|date:"Y/m/d" }}</p>
                             </div>
                         </div>
@@ -41,7 +41,7 @@
                             <li class="list-group-item">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
-                                        <strong>{{ back.user.username }}</strong> 以 <strong>{{ back.shop.name }}</strong> 回應
+                                        <strong>{{ back.user.profile.nickname }}</strong> 以 <strong>{{ back.shop.name }}</strong> 回應
                                     </div>
                                     <small class="text-muted">{{ back.date|date:"Y/m/d H:i" }}</small>
                                 </div>
@@ -110,7 +110,7 @@
                                 <h4>{{ want.title }}</h4>
                                 <div class="d-flex justify-content-between">
                                     <p class="text-muted mb-2">
-                                        <small>發布者: {{ want.user.username }} | 更新於: {{ want.update|date:"Y/m/d H:i" }}</small>
+                                        <small>發布者: {{ want.user.profile.nickname }} | 更新於: {{ want.update|date:"Y/m/d H:i" }}</small>
                                     </p>
                                 </div>
                                     

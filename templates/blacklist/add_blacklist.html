@@ -21,7 +21,7 @@
 {% else %}
   <img class="avatar" src="/static/img/Defuser.png" alt="預設頭像" />
 {% endif %}
-    <span class="name">{{ blocked_user.black_user.username }}</span>
+    <span class="name">{{ blocked_user.black_user.profile.nickname }}</span>
     <span class="join-date">加入日期：{{ blocked_user.date|date:"Y/m/d" }}</span>
 <form method="POST" action="{% url 'blacklist_remove' %}">
   {% csrf_token %}

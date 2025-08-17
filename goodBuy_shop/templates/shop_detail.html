@@ -17,7 +17,7 @@
                 <div class="d-flex align-items-center">
                     <img src="{{ shop.owner.profile.avatar.url }}" class="avatar me-2">
                     <div>
-                         <strong>{{ shop.owner.username }}</strong><br>
+                         <strong>{{ shop.owner.profile.nickname }}</strong><br>
                          <a href="{% url 'view_profile' shop.owner.id %}" class="fw-bold text-decoration-none">查看賣家</a>
                     </div>
                 </div>
@@ -191,7 +191,7 @@
                                 <div class="d-flex justify-content-between">
                                     <div>
                                         <img src="{{ shop.owner.profile.avatar.url }}" class="avatar">
-                                        <a>{{ shop.owner.username }}</a>
+                                        <a>{{ shop.owner.profile.nickname }}</a>
                                         <small class="text-muted">{{ a.update|date:"Y/m/d H:i" }}</small>
                                         <strong>{{ a.title }}</strong><br>
                                         <div>{{ a.announcement|linebreaksbr }}</div>
