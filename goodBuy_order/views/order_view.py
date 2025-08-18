@@ -180,10 +180,18 @@ def my_rush_status_in_intent(request, shop, intent):
 @login_required(login_url='login')
 def purchase_priority_table(request, shop_id):
     shop = get_object_or_404(Shop, id=shop_id)
+
+    # 顯示標題與模式（2=金額優先；3=數量優先）
     priority_mode = 'amount' if shop.purchase_priority_id == 2 else 'quantity'
     title = "金額多帶優先表" if priority_mode == 'amount' else "數量多帶優先表"
 
-    products = list(Product.objects.filter(shop=shop, is_delete=False).only('id','name','stock','price'))
+    # 商品（只取有庫存、未刪除者；若你要顯示缺貨也能帶進來就拿掉 stock>0）
+    products = list(
+        Product.objects
+        .filter(shop=shop, is_delete=False)
+        .only('id', 'name', 'stock', 'price')
+        .order_by('id')
+    )
     if not products:
         return render(request, 'priority_table.html', {
             'shop': shop, 'priority_mode': priority_mode, 'priority_title': title,
@@ -193,66 +201,48 @@ def purchase_priority_table(request, shop_id):
     product_ids = [p.id for p in products]
     prod_by_id = {p.id: p for p in products}
 
-    intents = PurchaseIntent.objects.filter(shop=shop).select_related('user')
-    intent_ids = list(intents.values_list('id', flat=True))
-    user_by_intent = {pi.id: pi.user for pi in intents}
+    # 1) 取得「已排序」的使用者搶購摘要（核心：使用你剛完成的邏輯）
+    #    傳入 request.user 會讓 summaries 在自己那筆附上 self_view（可用於顯示）
+    summaries = get_rush_summaries(shop, user=request.user)
 
-    ip_qs = (IntentProduct.objects
-            .filter(intent_id__in=intent_ids, product_id__in=product_ids)
-            .values('intent_id','product_id')
-            .annotate(qty=Sum('quantity')))
+    # 2) 準備上方統計（buyers_summary）與每位買家對各商品的最終需求量
+    buyers_summary = []
+    buyer_rows = []  # 以 username + per_product 快取，便於分配矩陣使用
+    for s in summaries:
+        user = s['user']
+        username = getattr(getattr(user, 'profile', None), 'nickname', None) or user.username
 
-    # 聚合買家數據
-    buyers = {}
-    for row in ip_qs:
-        user = user_by_intent[row['intent_id']]
-        uid = user.id
-        pid = row['product_id']
-        qty = int(row['qty'] or 0)
-        if qty <= 0:
-            continue
-        if uid not in buyers:
-            buyers[uid] = {
-                'user': user,
-                'username': user.profile.nickname,
-                'per_product': defaultdict(int),
-                'total_qty': 0,
-                'total_amount': 0,
-            }
-        buyers[uid]['per_product'][pid] += qty
-        buyers[uid]['total_qty'] += qty
-        buyers[uid]['total_amount'] += qty * prod_by_id[pid].price
+        # s['products'] 為 [(product, quantity), ...]（或 namedtuple）
+        per_product = {ip.product.id: int(ip.quantity) for ip in s['products']}
 
-    buyer_list = list(buyers.values())
-    key_field = 'total_amount' if priority_mode == 'amount' else 'total_qty'
-    buyer_list.sort(key=lambda b: (b[key_field], b['user'].id), reverse=True)
+        buyers_summary.append({
+            'username': username,
+            'total_amount': s['total_price'],
+            'total_qty': s['total_quantity'],
+            'product_quantities': per_product,  # 若模板不用可移除
+        })
+        buyer_rows.append((username, per_product))
 
-    # 供上方總表使用的精簡資料
-    buyers_summary = [
-        {
-            'username': b['username'],
-            'total_amount': b['total_amount'],
-            'total_qty': b['total_qty'],
-            'product_quantities': dict(b['per_product']),  # 若你上方要看各品可留，否則可拿掉
-        }
-        for b in buyer_list
-    ]
-
-    # 生成分配矩陣（用「使用者名稱」填格）
+    # 3) 依排序結果，逐品項建立「分配矩陣」
+    #    alloc_col[pid] = ['userA','userA','userB', ...] 長度 <= stock
     alloc_col = {pid: [] for pid in product_ids}
-    for b in buyer_list:
-        for pid, want_qty in b['per_product'].items():
+    for username, per_product in buyer_rows:
+        for pid, want_qty in per_product.items():
+            if pid not in prod_by_id:
+                continue
             stock = prod_by_id[pid].stock
-            if stock <= 0:
+            if stock <= 0 or want_qty <= 0:
                 continue
             col = alloc_col[pid]
             free_slots = max(stock - len(col), 0)
             if free_slots <= 0:
                 continue
             take = min(want_qty, free_slots)
-            col.extend([b['username']] * take)  # ← 用名稱，不是 rank
+            # 以「需求件數」填入對應數量的 username（可視覺化誰拿到幾件）
+            col.extend([username] * take)
 
-    max_rows = max(p.stock for p in products) if products else 0
+    # 4) 組成表格資料（headers / rows）
+    max_rows = max((p.stock for p in products), default=0)
     headers = [{'id': p.id, 'name': p.name, 'stock': p.stock} for p in products]
 
     rows = []
@@ -262,9 +252,9 @@ def purchase_priority_table(request, shop_id):
             s = p.stock
             col = alloc_col[p.id]
             if r >= s:
-                cell = '-'          # 超出庫存列
+                cell = '-'                      # 超出庫存的列
             else:
-                cell = col[r] if r < len(col) else ''  # 有庫存未分配 → 空白
+                cell = col[r] if r < len(col) else ''  # 有庫存但尚未被分配
             row_cells.append(cell)
         rows.append(row_cells)
 
