@@ -122,14 +122,12 @@ def wantBySearch(request, user=None):
     # 推薦邏輯
     if request.user.is_authenticated:
         wants = personalized_want_recommendation(
-            user=request.user,
-            keywords=[kw] if kw else None,
-            want_queryset=base_queryset,
-            exclude_seen=False,
-            limit=100
+            request=request,
+            keywords=kw,
+            limit=50
         )
     else:
-        wants = get_hot_wants(limit=100, keyword=kw)
+        wants = get_hot_wants(request=request, limit=100, keyword=kw)
         if user:
             wants = [w for w in wants if w.owner_id == user.id]
 
@@ -149,13 +147,12 @@ def wantBySearch(request, user=None):
 def wantByTag(request, tag):
     if request.user.is_authenticated:
         wants = personalized_want_recommendation(
-            user=request.user,
-            tags=[tag.name],
-            exclude_seen=False,
-            limit=100
+            request=request,
+            tags=tag,
+            limit=50
         )
     else:
-        wants = get_hot_wants(limit=100, tag=tag)
+        wants = get_hot_wants(request=request, limit=50, tag=tag)
 
     wants = wantInformation_many(wants)
     return render(request, '搜尋結果界面', locals())
