@@ -5,42 +5,46 @@
   <meta charset="UTF-8">
   <title># {{ kw }} 的搜尋結果</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="{% static 'css/shop_search.css' %}">
+  <link rel="stylesheet" href="{% static 'css/tag_search.css' %}">
+  <link rel="stylesheet" href="{% static 'css/card.css' %}">
 </head>
-<body class="bg-light">
-  {# <header>{% include "common/header.html" %}</header> #}
+<body class="page-search">
+   <header>{% include "common/header.html" %}</header> 
 
-  <main class="container py-4">
-    <div class="d-flex align-items-center justify-content-between mb-3">
-      <h3 class="mb-0"># {{ kw }}</h3>
-    </div>
+   <!-- 標題 + 追蹤按鈕 -->
+   <div class="search-header">
+     <h1 class="search-title"># {{ kw }}</h1>
+     <button
+    class="collect-btn btn btn-sm {% if current_tag.is_following %}btn-secondary{% else %}btn-outline-secondary{% endif %}"
+    data-tag-id="{{ current_tag.id }}">
+    {% if current_tag.is_following %}已追蹤{% else %}追蹤{% endif %}
+    </button>
+   </div>
 
-    {% if tags %}
-      <div class="mb-3">
-        <div class="d-flex flex-wrap gap-2">
-          {% for t in tags %}
-            <a href="{% url 'tagById_one' t.id %}" class="badge bg-light text-dark text-decoration-none">
-              #{{ t.name }}
-            </a>
-          {% endfor %}
+   {% if tags %}
+   <div class="tag-list">
+     <div class="tag-items">
+       {% for t in tags %}
+         <a href="{% url 'tagById_one' t.id %}" class="tag-chip">
+           #{{ t.name }}
+         </a>
+       {% endfor %}
+     </div>
+   </div>
+   {% endif %}
+
+   {% if shops %}
+    <div class="card-grid">
+        {% for shop in shops %}
+        <div class="card-item">
+            {% include "common/card.html" with type="sell" shop=shop %}
         </div>
-      </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-text">沒有找到符合「{{ kw }}」的商店。</div>
     {% endif %}
 
-        {% if shops %}
-        <div class="row g-3">
-            {% for shop in shops %}
-            <div class="col-6 col-md-4 col-lg-3">
-                {% include "common/card.html" with type="sell" shop=shop %}
-            </div>
-            {% endfor %}
-        </div>
-        {% else %}
-        <div class="text-muted">沒有找到符合「{{ kw }}」的商店。</div>
-        {% endif %}
-
-  </main>
-
-  <script src="{% static 'js/list.js' %}"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
