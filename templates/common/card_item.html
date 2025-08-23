@@ -1,7 +1,7 @@
 <!-- 收物帖分享共用卡片模板 -->
  
 {% load static %}
-<div class="card border-2 h-100 post-card {% if type == 'sell' %}border-pink{% else %}border-blue{% endif %}">
+<div class="card border-4 h-100 post-card {% if type == 'sell' %}border-pink{% else %}border-blue{% endif %}">
   <!-- 圖片區 -->
   <div class="image-wrapper d-flex justify-content-center align-items-center">
     {% if type == 'sell' and shop.images.exists %}
@@ -15,12 +15,12 @@
 
   <!-- 文字區 -->
   <div class="card-body d-flex flex-column justify-content-between">
-    <h5 class="card-title text-dark text-truncate">
+    <div class="card-title text-dark text-truncate">
       {% if type == 'sell' %}{{ shop.name }}{% else %}{{ want.title }}{% endif %}
-    </h5>
+    </div>
 
     {% if type == 'sell' %}
-      <p class="card-text text-danger fw-bold">NT$ ${{ shop.price_min }} - ${{ shop.price_max }}</p>
+      <p class="card-text text-danger fw-bold">NTD ${{ shop.price_min }} - ${{ shop.price_max }}</p>
     {% endif %}
 
     <div class="tag-list mt-auto">
