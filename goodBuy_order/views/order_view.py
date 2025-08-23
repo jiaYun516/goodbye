@@ -14,66 +14,75 @@ from ..rush_utils import *
 from utils import *
 # -------------------------
 # 訂單顯示 - 全部 - 分類+all
-# url參數傳入說明：?state=1&?role=seller
+"""
+    訂單清單查詢
+    GET 參數：
+        - role: 'buyer' 或 'seller' (預設 buyer)
+        - shop: 商店 ID (可選，限制查詢特定商店)
+        - state: 訂單狀態或群組代號 (可選)
+
+    state 可傳的值：
+        - 'pending'   → 待付款 (order_state_id in [1, 3])
+        - 'ordered'   → 已下單 (order_state_id in [2, 4])
+        - 'cancelled' → 未成立 (order_state_id in [7, 8, 9, 10])
+        - 數字字串    → 指定單一狀態，例如 '5' = 出貨中
+        - 不傳       → 全部狀態
+"""
 # -------------------------
 @login_required(login_url='login')
 def order_list(request):
-    state = request.GET.get('state')    # 狀態篩選，可能的值有 '1', '2', ..., '6'，或 '7' 代表已取消
-    shop_id = request.GET.get('shop')   # 商店篩選，傳入商店ID
-    role = request.GET.get('role', 'buyer')  # 角色篩選，可能的值有 'buyer' 或 'seller'
+    
+    # ==== 自定義群組 ====
+    STATE_GROUPS = {
+        "pending":   {"ids": [1, 3], "title": "待付款"},
+        "ordered":   {"ids": [2, 4], "title": "已下單"},
+        "cancelled": {"ids": [7, 8, 9, 10], "title": "未成立"},
+    }
 
-    # 預設空 QuerySet
-    orders = Order.objects.none()
-    shop = None
+    role = request.GET.get('role', 'buyer')
+    shop_id = request.GET.get('shop')
+    state_param = request.GET.get('state')
 
+    # ---- 基本篩選：買家 or 賣家 ----
     if role == 'buyer':
-        # 查自己買的
         orders = Order.objects.filter(user=request.user)
     elif role == 'seller':
-        # 查自己賣出的
         orders = Order.objects.filter(shop__owner=request.user)
+    else:
+        orders = Order.objects.none()
 
-    # 商店篩選
+    shop = None
     if shop_id:
         try:
             shop = Shop.objects.get(id=shop_id)
         except Shop.DoesNotExist:
             messages.error(request, "商店不存在")
             return redirect('home')
-
-        if role == 'seller':
-            # 賣家模式檢查店主
-            if shop.owner != request.user:
-                messages.error(request, "無權查看此商店的訂單")
-                return redirect('home')
-        else:
-            # 買家模式檢查店是否公開
-            if shop.permission not in [1, 2]:
-                messages.error(request, "商店不存在")
-                return redirect('home')
-
         orders = orders.filter(shop=shop)
 
-    # 狀態篩選
-    if state:
-        if state == '7':
-            orders = orders.filter(order_state_id__in=[7, 8, 9, 10])
+    # ---- 狀態篩選 ----
+    title = "全部"
+    if state_param:
+        if state_param in STATE_GROUPS:
+            # 使用群組
+            orders = orders.filter(order_state_id__in=STATE_GROUPS[state_param]["ids"])
+            title = STATE_GROUPS[state_param]["title"]
+
         else:
-            orders = orders.filter(order_state_id=state)
+            # 嘗試當成單一狀態 id
+            try:
+                state_id = int(state_param)
+                orders = orders.filter(order_state_id=state_id)
+                title = OrderState.objects.get(id=state_id).name
+            except (ValueError, OrderState.DoesNotExist):
+                messages.warning(request, "無效的狀態參數")
+                title = "全部"
 
-    # 標題設定
-    if state in ['7', '8', '9', '10']:
-        title = '已取消'
-    elif state:
-        title = OrderState.objects.get(id=state).name
-    else:
-        title = '全部'
-
-    return render(request, 'order_list.html', {
-        'title': title,
-        'orders': orders,
-        'shop': shop,
-        'role': role
+    return render(request, "order_list.html", {
+        "title": title,
+        "orders": orders,
+        "shop": shop,
+        "role": role,
     })
 
 # -------------------------

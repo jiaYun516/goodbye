@@ -15,10 +15,9 @@ from utils.decorators_shortcuts import *
 from goodBuy_web.models.user_address import UserAddress
 
 # 把 PaymentAccount.payment.name（中文/顯示名）對應到 Order.payment_category choices 的值
-PAYMENT_NAME_TO_CHOICE = {
-    '取貨付款': 'cash_on_delivery',
-    '匯款': 'remittance',
-}
+PAYMENT_NAME_TO_CHOICE = { '取貨付款': 'cash_on_delivery', '匯款': 'remittance',}
+COD_NAMES = {'取貨付款', '貨到付款', 'COD'}
+
 # -------------------------
 # 商品下單
 # -------------------------
@@ -56,7 +55,7 @@ def checkout_step1(request):
             messages.error(request, '購物車資料無效')
             return redirect('cart')
         for item in cart_items:
-            if item.product.stock < quantity:
+            if item.product.stock < item.quantity:
                 messages.error(request, f'{item.product.name} 庫存不足')
                 print(f'{item.product.name} 庫存不足')
                 return redirect('cart')
@@ -298,7 +297,9 @@ def checkout_step2(request):
                 pay_state_id = 1
                 payment_mode = 'full'
             else:
-                # 匯款：'split' 視為「訂金+尾款」→ 2，'full' → 8
+                allow_deposit = bool(getattr(o.shop, 'allow_deposit', False))
+                if not allow_deposit:
+                    payment_mode = 'full'
                 pay_state_id = 2 if payment_mode == 'split' else 8
 
             # 寫入訂單
@@ -334,55 +335,55 @@ def checkout_step2(request):
 # -------------------------
 @login_required(login_url='login')
 @order_buyer_required
-def choose_payment_method(order, request=None):
+def choose_payment_method(request, order):
     if order.order_state_id != 1:
         messages.error(request, '訂單狀態錯誤，無法選擇付款方式')
         return redirect('buyer_order_detail', order_id=order.id)
-    
-    shop = order.shop
-    shop_payment_links = ShopPayment.objects.filter(shop=shop).select_related('payment_account')
 
-    available_payment_methods = []
-    remittance_accounts = []
+    links = (ShopPayment.objects
+            .filter(shop=order.shop)
+            .select_related('payment_account', 'payment_account__payment'))
 
-    if shop.transfer:
-        remittance_accounts = shop_payment_links.exclude(payment_account__id=1)
-        if remittance_accounts.exists():
-            available_payment_methods.append('remittance')
+    # 分群：銀行 vs 取貨付款（若你已有 Payment.kind/code，改用語義欄位判斷）
+    remittance_qs = links.exclude(payment_account__payment__name__in=COD_NAMES)
+    has_cod = links.filter(payment_account__payment__name__in=COD_NAMES).exists()
 
-        if shop_payment_links.filter(payment_account__id=1).exists():
-            available_payment_methods.append('cash_on_delivery')
-    else:
-        available_payment_methods.append('cash_on_delivery')
+    # 動態決定表單能選的付款方式
+    available_methods = []
+    if has_cod:
+        available_methods.append(('cod', '取貨付款'))
+    if remittance_qs.exists():
+        available_methods.append(('bank', '銀行匯款'))
 
-    if not available_payment_methods:
+    if not available_methods:
         messages.error(request, '此商店未設定任何可用付款方式')
         return redirect('buyer_order_detail', order_id=order.id)
 
     if request.method == 'POST':
-        selected_method = request.POST.get('payment_method')
+        form = ChoosePaymentForm(request.POST, shop=order.shop, remittance_qs=remittance_qs)
+        # 把可用選項塞回去，避免前端竄改
+        form.fields['payment_method'].choices = available_methods
 
-        if selected_method not in available_payment_methods:
-            messages.error(request, '付款方式無效')
-            return redirect('order_payment_choice', order_id=order.id)
+        if form.is_valid():
+            method = form.cleaned_data['payment_method']
+            order.payment_category = method
+            order.order_state_id = 2
+            order.save()
 
-        order.payment_category = selected_method
+            messages.success(request, '付款方式已選擇')
+            return redirect('buyer_order_detail', order_id=order.id)
+        else:
+            messages.error(request, '表單驗證失敗，請重新確認')
+    else:
+        form = ChoosePaymentForm(shop=order.shop, remittance_qs=remittance_qs)
+        form.fields['payment_method'].choices = available_methods
 
-        if selected_method == 'remittance':
-            try:
-                selected_account_id = int(request.POST.get('payment_account_id'))
-            except (TypeError, ValueError, ShopPayment.DoesNotExist):
-                messages.error(request, '請選擇有效的匯款帳戶')
-                return redirect('order_payment_choice', order_id=order.id)
-
-        order.order_state_id = 2
-        order.save()
-
-        messages.success(request, '付款方式已選擇')
-        return redirect('buyer_order_detail', order_id=order.id)
-
-    return render(request, 'payment_choice.html', {'available_payment_methods': available_payment_methods,
-                                                'remittance_accounts': remittance_accounts,})
+    return render(request, 'payment_choice.html', {
+        'order': order,
+        'form': form,
+        'has_cod': has_cod,
+        'remittance_qs': remittance_qs,  # 若想在前端自訂渲染用得到
+    })
 
 # -------------------------
 # 買家上傳付款憑證
@@ -390,25 +391,40 @@ def choose_payment_method(order, request=None):
 @login_required(login_url='login')
 @order_buyer_required
 def upload_payment_proof(request, order):
-    if order.payment_category != 'remittance':
+    # 只允許「銀行匯款」的訂單上傳憑證
+    if order.payment_category != 'bank':
         messages.error(request, '此訂單不需匯款，無法上傳憑證')
         return redirect('buyer_order_detail', order_id=order.id)
 
-    if order.has_pending_payment_proof:
+    # 已有待審憑證就禁止重複上傳
+    if getattr(order, 'has_pending_payment_proof', False):
         messages.error(request, '您已上傳付款憑證，請等待賣家確認或退回後再試')
         return redirect('buyer_order_detail', order_id=order.id)
 
-    remit_accounts = ShopPayment.objects.filter(shop=order.shop).exclude(payment_account__id=1)
+    # 只取本店的「銀行」帳戶（名稱不在 COD_NAMES 的都視為銀行）
+    remit_accounts = (
+        ShopPayment.objects
+        .filter(shop=order.shop)
+        .exclude(payment_account__payment__name__in=COD_NAMES)
+        .select_related('payment_account', 'payment_account__payment')
+    )
 
     if request.method == 'POST':
         form = OrderPaymentForm(request.POST, request.FILES)
-        account_id = request.POST.get('payment_account_id')
 
-        if not account_id:
+        account_raw = request.POST.get('payment_account_id')
+        if not account_raw:
             messages.error(request, '請選擇匯款帳戶')
             return redirect('buyer_order_detail', order_id=order.id)
 
         try:
+            account_id = int(account_raw)
+        except (TypeError, ValueError):
+            messages.error(request, '匯款帳戶無效')
+            return redirect('buyer_order_detail', order_id=order.id)
+
+        try:
+            # 僅允許本店、且屬於「銀行」清單中的帳戶
             shop_payment = remit_accounts.get(id=account_id)
         except ShopPayment.DoesNotExist:
             messages.error(request, '匯款帳戶無效')
@@ -422,6 +438,9 @@ def upload_payment_proof(request, order):
             payment_record.seller_state = 'wait_confirmed'
             payment_record.save()
 
+            order.order_state_id = 2
+            order.save()
+
             messages.success(request, '匯款資訊已上傳，等待賣家確認')
             return redirect('buyer_order_detail', order_id=order.id)
         else:
@@ -429,6 +448,8 @@ def upload_payment_proof(request, order):
     else:
         form = OrderPaymentForm()
 
-    return render(request, 'upload_payment.html', {'remit_accounts':remit_accounts,
-                                                    'form': form,
-                                                    'order': order})
+    return render(request, 'upload_payment.html', {
+        'remit_accounts': remit_accounts,
+        'form': form,
+        'order': order,
+    })
