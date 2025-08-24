@@ -15,7 +15,6 @@
     <p class="text-muted mb-4" id="cart-count">已選取 0 個商品</p>
 
     <!-- 刪除勾選項目的表單 -->
-    <form method="POST" action="{% url 'delete_multiple_cart_items' %}" id="cart-form">
       {% csrf_token %}
 
       {% for group in grouped_cart %}
@@ -72,7 +71,6 @@
           </div>
         </div>
       {% endfor %}
-    </form>
 
     <!-- 結帳專用表單（整頁只留一個） -->
     <form method="POST" action="{% url 'checkout' %}" id="checkout-form">
