@@ -107,5 +107,11 @@ document.addEventListener("DOMContentLoaded", function () {
       checkoutForm.submit();
     });
   }
+  const cbs = document.querySelectorAll('.item-checkbox:checked');
+  const kinds = new Set([...cbs].map(cb => cb.dataset.type)); // e.g. {'normal', 'rush'}
+  if (kinds.size > 1) {
+    alert('一般商店與多帶商店不可一起結帳，請分開勾選。');
+    // 也可以自動取消剛剛那個勾選
+  }
 });
 
