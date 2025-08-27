@@ -185,22 +185,6 @@ def shopBySearch(request, user=None):
     return render(request, '搜尋結果界面', locals())
 
 # -------------------------
-# 商店查詢 - tag
-# -------------------------
-@tag_exists_required
-def shopByTag(request, tag):
-    if request.user.is_authenticated:
-        shops = personalized_shop_recommendation(
-            request=request,
-            tags=tag,
-            limit=50
-        )
-    else:
-        shops = get_hot_shops(request=request, limit=50, tag=tag)
-    shops = shopInformation_many(shops)
-    return render(request, '搜尋結果界面', locals())
-
-# -------------------------
 # 商店查詢 - 隱私狀況（ex.查詢自己私人的商店
 # -------------------------
 @login_required
