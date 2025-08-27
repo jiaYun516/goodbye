@@ -707,3 +707,25 @@ a[href*="logout"] {
   opacity: .7;
 }
 
+.page-back {
+  margin: 16px 0;
+  padding-left: 16px;  /* 距離螢幕左側 16px */
+}
+
+.back-home {
+  font-size: 26px;
+  font-weight: bold;
+  color: #333;
+  text-decoration: none;
+}
+.back-home {
+  position: absolute !important;
+
+  left: 16px !important;
+  transform: translateY(-50%) !important;
+  font-size: 35px !important;
+  font-weight: bold;
+  color: #333 !important;
+  text-decoration: none !important;
+  z-index: 1100 !important;
+}

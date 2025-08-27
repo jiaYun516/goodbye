@@ -26,6 +26,8 @@ body.page-search::before {
   height: calc(var(--gb-header-h) + 16px);
 }
 
+
+
 /* 版心 */
 body.page-search > :not(header) {
   max-width: 1240px;
@@ -38,26 +40,31 @@ body.page-search > :not(header) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 50px;
+  background-color: #ffffff;
+  padding: 24px 0;   
+  min-height: 80px; 
+  
+}
+.search-header.container {
+  max-width: 90% !important;  /* 🔹讓它全螢幕 */
+  padding-left: 24px;
+  padding-right: 24px;
 }
 .search-title {
   font-weight: 900;
   font-size: clamp(22px, 3vw, 32px);
   letter-spacing: 1px;
 }
-.btn-follow {
+.collect-btn {
   border-radius: 999px;
   padding: 8px 18px;
   font-weight: 600;
-  border: 1px solid #ddd;
-  background: #fff;
-  color: #333;
   transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
 }
-.btn-follow:hover {
+.collect-btn:hover {
   transform: translateY(-1px);
   box-shadow: var(--gb-shadow);
-  background: #f8f9fa;
 }
 
 /* ========= 標籤列 ========= */
@@ -87,12 +94,12 @@ body.page-search > :not(header) {
 /* ========= 卡片列 ========= */
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 240px)); /* 固定卡片寬度 */
-  justify-content: start;   /* 靠左排列 */
-  gap: 12px;                /* 卡片間距 */
+  grid-template-columns: repeat(auto-fill, minmax(240px, 240px));
+  justify-content: start;
+  gap: 12px;
 }
 .card-grid .card {
-  width: 240px;             /* 卡片固定寬度 */
+  width: 240px;
   display: flex;
   flex-direction: column;
 }
@@ -109,9 +116,9 @@ body.page-search > :not(header) {
 }
 @media (max-width: 576px) {
   .search-title { margin: 8px 0 12px; }
-  .btn-follow { padding: 6px 14px; }
+  .collect-btn { padding: 6px 14px; }
 
   .card-grid {
-    grid-template-columns: 1fr; /* 手機上一列一張 */
+    grid-template-columns: 1fr;
   }
 }

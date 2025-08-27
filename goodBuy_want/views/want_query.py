@@ -183,23 +183,6 @@ def wantBySearch(request, user=None):
     return render(request, '搜尋結果界面', locals())
 
 # -------------------------
-# 收物帖查詢 - tag_id
-# -------------------------
-@tag_exists_required
-def wantByTag(request, tag):
-    if request.user.is_authenticated:
-        wants = personalized_want_recommendation(
-            request=request,
-            tags=tag,
-            limit=50
-        )
-    else:
-        wants = get_hot_wants(request=request, limit=50, tag=tag)
-
-    wants = wantInformation_many(wants)
-    return render(request, '搜尋結果界面', locals())
-
-# -------------------------
 # 收物帖查詢 - permission_id
 # -------------------------
 @login_required(login_url='login')

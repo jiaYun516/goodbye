@@ -1,0 +1,62 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title># {{ tag.name }} 的搜尋結果</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/tag_search.css' %}">
+  <link rel="stylesheet" href="{% static 'css/card.css' %}">
+</head>
+<body class="page-search">
+  <header>{% include "common/header.html" %}</header>
+
+  <!-- 標題 + 追蹤按鈕 -->
+  <div class="search-header container mt-4">
+    <h1 class="search-title mb-0"># {{ tag.name }}</h1>
+
+    {% if request.user.is_authenticated and tag %}
+      <form method="post" action="{% url 'tag_collect_toggle' tag_id=tag.id %}">
+        {% csrf_token %}
+        <button type="submit" class="collect-btn btn {% if tag.is_following %}btn-secondary{% else %}btn-outline-secondary{% endif %}">
+          {% if tag.is_following %}已追蹤{% else %}追蹤{% endif %}
+        </button>
+      </form>
+    {% else %}
+      <a class="collect-btn btn btn-outline-secondary" href="{% url 'login' %}?next={{ request.path }}">追蹤</a>
+    {% endif %}
+  </div>
+
+  <!-- 相似標籤 -->
+  {% if tags %}
+    <div class="tag-list container mt-3">
+      <div class="tag-items">
+        {% for t in tags %}
+          <a href="{% url 'tagById_one' t.id %}" class="tag-chip">#{{ t.name }}</a>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- 卡片列表 -->
+  <div class="container my-4">
+    {% if items %}
+      <div class="card-grid">
+        {% for item in items %}
+          {% if item.post_type == "want" %}
+            {% include "common/card.html" with want=item type="want" %}
+          {% elif item.post_type == "shop" %}
+            {% include "common/card.html" with shop=item type="sell" %}
+          {% else %}
+            <div class="card p-3">未知類型</div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-text text-muted">沒有找到符合條件的內容。</div>
+    {% endif %}
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

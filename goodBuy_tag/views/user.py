@@ -16,11 +16,13 @@ def tag_collect_toggle(request, tag):
     if obj:
         obj.delete()
         messages.info(request, '已取消收藏')
+        print('取消收藏')
     else:
         TagCollect.objects.create(user=request.user, tag=tag, date=timezone.now())
         messages.success(request, '收藏成功')
+        print('收藏成功')
 
-    return redirect('tag.html', tag_id=tag.id)
+    return redirect('tagById_one', tag_id=tag.id)
 # -------------------------
 # 標籤收藏查看
 # -------------------------
@@ -28,5 +30,5 @@ def tag_collect_toggle(request, tag):
 def my_tags_collected(request):
     tag_ids = TagCollect.objects.filter(user=request.user).values_list('tag_id', flat=True)
 
-    shops = Tag.objects.filter(id__in=tag_ids)
+    tags = Tag.objects.filter(id__in=tag_ids)
     return render(request, 'tag_collect.html', locals())

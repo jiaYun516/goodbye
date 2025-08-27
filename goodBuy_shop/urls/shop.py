@@ -11,7 +11,6 @@ urlpatterns = [
     # 查詢
     path('<int:shop_id>/',shopById_one, name='shop'),
     path('<int:user_id>/',shopByUserId_many, name='shop_page'),
-    path('<int:tag_id>/',shopByTag, name='shop_tag'),
 
     #搜尋
     path('shop/search/', shopBySearch, name='shop_search'),
