@@ -1,54 +1,65 @@
 // static/js/blacklist_popover.js
-(function () {
-  const getHeader = () => document.querySelector('#profile-header, .profile-header');
-  const getPop = () => document.getElementById('bl-popover');
+document.addEventListener('DOMContentLoaded', () => {
+  const header = document.querySelector('#profile-header, .profile-header');
+  const avatar = document.querySelector('.profile-avatar');
+  const nameEl = document.querySelector('.profile-name');
+  const pop = document.getElementById('bl-popover');
+  if (!header || !pop || (!avatar && !nameEl)) return;
 
-  // === 右鍵開啟（只在 header 上生效） ===
-  document.addEventListener('contextmenu', function (ev) {
-    const header = ev.target.closest('#profile-header, .profile-header');
-    const pop = getPop();
-    if (!header || !pop) return;
-
-    // 阻止瀏覽器原生右鍵選單（只在 header 內）
-    ev.preventDefault();
-    ev.stopPropagation();
-
-    // 顯示並定位在滑鼠右下角，避免超出視窗
+  // 固定錨點定位：永遠放在 .profile-header 右上角往內 16px
+  function openAtFixedAnchor() {
     pop.hidden = false;
     requestAnimationFrame(() => {
+      const rect = header.getBoundingClientRect();
       const pw = pop.offsetWidth || 180;
       const ph = pop.offsetHeight || 48;
-      let x = ev.clientX + 10;
-      let y = ev.clientY + 10;
-      x = Math.min(x, window.innerWidth - pw - 10);
-      y = Math.min(y, window.innerHeight - ph - 10);
+
+      // 右上角往內 16px（可調整）
+      let x = rect.right - pw - 900;
+      let y = rect.top + 230;
+
+      // 邊界保護
+      x = Math.max(8, Math.min(x, window.innerWidth  - pw - 8));
+      y = Math.max(8, Math.min(y, window.innerHeight - ph - 8));
+
       pop.style.left = x + 'px';
       pop.style.top  = y + 'px';
     });
-  });
-
-  // 點擊或右鍵在「外部」都關閉（外部右鍵仍保留原生選單）
-  document.addEventListener('click', closeIfOpen);
-  document.addEventListener('contextmenu', function (ev) {
-    const pop = getPop();
-    if (!pop || pop.hidden) return;
-    if (ev.target.closest('#profile-header, .profile-header, #bl-popover')) return;
-    // 不阻止預設 -> 保留外部右鍵選單，同時關閉浮窗
-    pop.hidden = true;
-  });
-
-  // 在浮窗內操作不要冒泡（避免被外部監聽關掉）
-  document.addEventListener('click', function (ev) {
-    if (ev.target.closest('#bl-popover')) ev.stopPropagation();
-  });
-
-  // ESC / 捲動 / 縮放：關閉
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeIfOpen(); });
-  window.addEventListener('scroll',  () => closeIfOpen(), { passive: true });
-  window.addEventListener('resize',  () => closeIfOpen());
-
-  function closeIfOpen(){
-    const pop = getPop();
-    if (pop && !pop.hidden) pop.hidden = true;
   }
-})();
+
+  // 只在點到頭貼或名字時開啟
+  function tryOpen(ev) {
+    const onTarget = ev.target.closest('.profile-avatar, .profile-name');
+    if (!onTarget) return;
+
+    // 右鍵在目標上 → 阻止原生選單；左鍵則不影響
+    if (ev.type === 'contextmenu') ev.preventDefault();
+
+    ev.stopPropagation();
+    openAtFixedAnchor();
+  }
+
+  // 左鍵與右鍵都支援
+  if (avatar) {
+    avatar.addEventListener('click', tryOpen);
+    avatar.addEventListener('contextmenu', tryOpen);
+  }
+  if (nameEl) {
+    nameEl.addEventListener('click', tryOpen);
+    nameEl.addEventListener('contextmenu', tryOpen);
+  }
+
+  // 關閉：點外面 / 外部右鍵 / ESC / 捲動 / 縮放
+  document.addEventListener('click', (ev) => {
+    if (!pop.hidden && !ev.target.closest('#bl-popover')) pop.hidden = true;
+  });
+  document.addEventListener('contextmenu', (ev) => {
+    if (!pop.hidden && !ev.target.closest('.profile-avatar, .profile-name, #bl-popover')) {
+      // 不阻止預設，讓外部仍顯示原生選單
+      pop.hidden = true;
+    }
+  });
+  document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') pop.hidden = true; });
+  window.addEventListener('scroll', () => { if (!pop.hidden) pop.hidden = true; }, { passive: true });
+  window.addEventListener('resize', () => { if (!pop.hidden) pop.hidden = true; });
+});
