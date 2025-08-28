@@ -12,14 +12,14 @@ from goodBuy_tag.models import *
 
 from itertools import chain
 from operator import attrgetter
-from django.db.models import Q
+from django.db.models import Q , Min, Max, Prefetch
+from goodBuy_shop.models import Shop, ShopImg
 
 def homePage(request):
     # 搜尋關鍵字
     q_raw = request.GET.get('q')
-    post_type = request.GET.get('type')  # sell / want 
-    tag = request.GET.get('tag')         # 標籤名稱 
-    
+    post_type = request.GET.get('type')  # sell / want
+    tag = request.GET.get('tag')  # 標籤名稱
     # 搜尋字串
     q = q_raw.strip() if q_raw else ''
 
@@ -38,11 +38,21 @@ def homePage(request):
         shops = get_hot_shops(request=request, keyword=q, limit=10)
         wants = get_hot_wants(request=request, keyword=q, limit=10)
 
+        shops = shopInformation_many(shops)
+        wants = wantInformation_many(wants)
+
         for shop in shops:
             shop.post_type = 'shop'
 
         for want in wants:
             want.post_type = 'want'
+
+        # 計算商品總價
+        items = sorted(
+            chain(shops, wants), 
+            key=attrgetter('update'), 
+            reverse=True
+        )
 
         items = list(chain(shops, wants))
         items.sort(key=lambda x: x.update, reverse=True)
