@@ -74,4 +74,4 @@ class Shop(models.Model):
     """
     @property
     def tags(self):
-        return [st.tag.name for st in self.shoptag_set.all()]
+        return self.name or ""

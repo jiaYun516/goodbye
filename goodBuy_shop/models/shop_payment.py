@@ -15,4 +15,4 @@ class ShopPayment(models.Model):
         ]
     
     def __str__(self):
-        return self.payment_account
+        return self.id
