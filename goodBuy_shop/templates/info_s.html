@@ -8,7 +8,7 @@
     <div class="col-6 col-md-3 d-flex align-items-center justify-content-center mb-2 mb-md-0">
       <a href="{% url 'view_profile' shop.owner.id %}" class="seller-link d-flex align-items-center">
         <img src="{{ shop.owner.profile.avatar_url }}" class="avatar me-2" alt="賣家頭像">
-        <strong>{{ shop.owner.username }}</strong>
+        <strong>{{ shop.owner.profile.nickname|default:shop.owner.username }}</strong>
       </a>
     </div>
 

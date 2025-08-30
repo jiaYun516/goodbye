@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const ph = pop.offsetHeight || 48;
 
       // 右上角往內 16px（可調整）
-      let x = rect.right - pw - 900;
+      let x = rect.right - pw - 850;
       let y = rect.top + 230;
 
       // 邊界保護
