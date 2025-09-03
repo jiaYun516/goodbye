@@ -13,12 +13,10 @@ urlpatterns = [
     path('user/', include('goodBuy_order.urls.user')),#改了這行不行就刪
 
     path('shop/', include('goodBuy_shop.urls.shop')),
-    path('shop/action/', include('goodBuy_shop.urls.shop_action')),
     path('shop/user/', include('goodBuy_shop.urls.user')),
 
     path('want/', include('goodBuy_want.urls.want')),
     path('want/reply/', include('goodBuy_want.urls.want_reply')),
-    # path('want/action/', include('goodBuy_want.urls.want_action')),
 
     path('tag/', include('goodBuy_tag.urls.tag')),
     path('tag/user/', include('goodBuy_tag.urls.user')),
