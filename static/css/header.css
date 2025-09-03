@@ -184,8 +184,15 @@ a[href*="logout"] {
     border-top: 2.5px solid #b2cfe5;
     border-bottom: 1.5px solid #bfd6e9;
 }
-.sidebar-title{
-    font-weight: bold;
+
+.sidebar-title {
+  display: block;
+  font-weight: bold;
+  font-size: 18px;
+  background: rgba(164, 214, 255, 0.7);  /* 0.7 = 70% 不透明度 */
+  color: #3d3939;
+  margin: 12px -20px 6px;
+  padding: 6px 20px;
 }
 .sidebar-tracks {
     background: #dde9f4;

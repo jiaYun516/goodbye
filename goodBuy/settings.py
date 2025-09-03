@@ -80,6 +80,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'goodBuy_tag.context_processors.user_followed_tags',#標籤顯示在每個主頁
             ],
         },
     },

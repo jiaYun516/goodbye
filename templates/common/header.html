@@ -84,18 +84,19 @@
       <li><a href="{% url 'buyer' %}">買方管理</a></li>
     </ul>
     
-    <hr>
+
 
     <!-- 追蹤清單，支援跳轉 -->
-     <br>
-    <div class="sidebar-title">已追蹤標籤</div>
-<ul id="my-followed-tags">
-  {% for tag in user_followed_tags %}
-    <li><a href="{% url 'tagById_one' tag.id %}" data-tag-id="{{ tag.id }}">#{{ tag.name }}</a></li>
-  {% empty %}
-    <li>目前沒有已追蹤標籤</li>
-  {% endfor %}
-</ul>
+<div class="sidebar-title">正在追蹤標籤</div>
+     <div class="sidebar-container">
+ <ul id="my-followed-tags">
+   {% for tag in user_followed_tags %}
+     <li><a href="{% url 'tagById_one' tag.id %}" data-tag-id="{{ tag.id }}">#{{ tag.name }}</a></li>
+   {% empty %}
+     <li>目前沒有已追蹤標籤</li>
+   {% endfor %}
+ </ul>
+ </div>
 
     <div class="sidebar-bottom">
       <p>問題回饋 GoodBuy114509@gmail.com</p>
