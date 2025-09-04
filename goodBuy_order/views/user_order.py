@@ -10,7 +10,6 @@ from goodBuy_web.models import *
 from .rush_view import maybe_extend_rush
 from ..models import *
 from ..forms import *
-from ..utils import *
 from utils.decorators_shortcuts import *
 from goodBuy_web.models.user_address import UserAddress
 
@@ -236,7 +235,7 @@ def checkout_step2(request):
     )
     if not orders:
         messages.error(request, '訂單已處理或不存在')
-        return redirect('order_list')
+        return redirect('buyer')
 
     # 小計
     order_totals = {
@@ -348,11 +347,40 @@ def checkout_step2(request):
 # -------------------------
 # 買家選擇付款方式
 # -------------------------
+from django.contrib import messages
+from django.shortcuts import redirect
+from django.contrib.auth.decorators import login_required
+
+PAY_STATE_AWAITING_METHOD = 10   # 請改成你實際常數
+ORDER_STATE_INIT = 1             # 請改成你實際常數
+
 @login_required(login_url='login')
-@order_buyer_required
+@order_exists_required 
 def choose_payment_method(request, order):
-    request.session['pending_order_ids'] = [order.id]
+    # 1) 擁有者檢查（若你的 decorator 已做就可省略）
+    if order.user != request.user:
+        messages.error(request, '沒有權限操作此訂單')
+        return redirect('order_list')
+
+    # 2) 狀態校正：確保進到選付款頁可被後續 view 撈到
+    changed = False
+    if getattr(order, 'order_state_id', None) != ORDER_STATE_INIT:
+        order.order_state_id = ORDER_STATE_INIT
+        changed = True
+    if getattr(order, 'pay_state_id', None) != PAY_STATE_AWAITING_METHOD:
+        order.pay_state_id = PAY_STATE_AWAITING_METHOD
+        changed = True
+    if changed:
+        order.save(update_fields=['order_state_id', 'pay_state_id'])
+
+    # 3) 寫入 session（存「整數 ID」陣列）
+    request.session['pending_order_ids'] = [int(order.id)]
+    # （理論上不需要，但保險起見）
+    request.session.modified = True
+
+    # 4) 轉去結帳頁
     return redirect('checkout_address_payment')
+
 
 # -------------------------
 # 買家上傳付款憑證
