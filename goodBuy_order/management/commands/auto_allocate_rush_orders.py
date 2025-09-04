@@ -136,6 +136,74 @@ class Command(BaseCommand):
         ))
 
     # -------------------------
+    # 工具：動態組 ProductOrder 欄位（依你目前的 model 欄位自動對應）
+    # -------------------------
+    def _build_product_order_kwargs(self, order, product, claim_qty):
+        """
+        根據 ProductOrder 目前的欄位，動態產生可用的 kwargs。
+        支援常見命名：
+        - 數量：quantity / amount
+        - 價格：unit_price / price / product_price
+        - 名稱快照：product_name / name_cache / snapshot_name
+        - 圖片快照：product_img / product_image / image_path / snapshot_img
+        你若有其他命名，也可以在這裡再補一個 elif。
+        """
+        from goodBuy_order.models import ProductOrder  # 避免循環 import，這裡再引用
+
+        # 取出目前 model 真正擁有的欄位名稱集合
+        model_fields = {
+            f.name
+            for f in ProductOrder._meta.get_fields()
+            if hasattr(f, "attname")  # 排除多對多等非真實欄位
+        }
+
+        kwargs = {
+            "order": order,
+            "product": product,
+        }
+
+        # 數量
+        if "quantity" in model_fields:
+            kwargs["quantity"] = claim_qty
+        elif "amount" in model_fields:
+            kwargs["amount"] = claim_qty
+
+        # 價格（單價快照）
+        price_val = getattr(product, "price", 0) or 0
+        if "unit_price" in model_fields:
+            kwargs["unit_price"] = price_val
+        elif "price" in model_fields:
+            kwargs["price"] = price_val
+        elif "product_price" in model_fields:
+            kwargs["product_price"] = price_val
+
+        # 名稱快照
+        name_val = getattr(product, "name", "") or ""
+        if "product_name" in model_fields:
+            kwargs["product_name"] = name_val
+        elif "name_cache" in model_fields:
+            kwargs["name_cache"] = name_val
+        elif "snapshot_name" in model_fields:
+            kwargs["snapshot_name"] = name_val
+
+        # 圖片快照
+        img_val = ""
+        img_field = getattr(product, "img", None)
+        if img_field:
+            img_val = getattr(img_field, "name", "") or ""
+
+        if "product_img" in model_fields:
+            kwargs["product_img"] = img_val
+        elif "product_image" in model_fields:
+            kwargs["product_image"] = img_val
+        elif "image_path" in model_fields:
+            kwargs["image_path"] = img_val
+        elif "snapshot_img" in model_fields:
+            kwargs["snapshot_img"] = img_val
+
+        return kwargs
+
+    # -------------------------
     # 正式結算：寫入資料庫（含鎖定與防重複）
     # -------------------------
     def allocate_shop(self, shop):
@@ -164,23 +232,22 @@ class Command(BaseCommand):
                 total_price = 0
                 for ip in s['products']:
                     p, want_qty = self._to_prod_qty(ip)
-                    available = max(0, p.stock - product_claimed[p.id])
+                    available = max(0, getattr(p, 'stock', 0) - product_claimed[p.id])
                     claim_qty = min(want_qty, available)
                     if claim_qty <= 0:
                         continue
 
-                    product_orders_bulk.append(ProductOrder(
-                        order=order,
-                        product=p,
-                        amount=claim_qty,
-                        product_name=p.name,
-                        product_price=p.price,
-                        product_img=(p.img.name if getattr(p, 'img', None) else ''),
-                    ))
+                    # 只塞「model 真的有的欄位」
+                    po_kwargs = self._build_product_order_kwargs(order, p, claim_qty)
+                    product_orders_bulk.append(ProductOrder(**po_kwargs))
+
+                    # 加總金額、佔用庫存
+                    unit_price = getattr(p, "price", 0) or 0
+                    total_price += unit_price * claim_qty
                     product_claimed[p.id] += claim_qty
-                    total_price += p.price * claim_qty
 
                 if total_price == 0:
+                    # 這個使用者分不到任何商品就不留空訂單
                     order.delete()
                 else:
                     order.total = total_price
@@ -188,6 +255,18 @@ class Command(BaseCommand):
 
             if product_orders_bulk:
                 ProductOrder.objects.bulk_create(product_orders_bulk, batch_size=1000)
+
+            # （可選）真的要扣實際庫存的話，這裡一次性 UPDATE
+            # 若你的系統規劃是「結算後才扣庫存」，可以開啟這段：
+            # products_to_update = {}
+            # for pid, claimed in product_claimed.items():
+            #     if claimed > 0:
+            #         products_to_update[pid] = claimed
+            # if products_to_update:
+            #     qs = Product.objects.select_for_update().filter(id__in=products_to_update.keys())
+            #     for prod in qs:
+            #         prod.stock = max(0, prod.stock - products_to_update[prod.id])
+            #         prod.save(update_fields=['stock'])
 
             # 切回時間序 + 標記已結算
             locked_shop.purchase_priority_id = 1
