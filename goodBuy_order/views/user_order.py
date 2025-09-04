@@ -357,7 +357,7 @@ ORDER_STATE_INIT = 1             # 請改成你實際常數
 @login_required(login_url='login')
 @order_exists_required 
 def choose_payment_method(request, order):
-    # 1) 擁有者檢查（若你的 decorator 已做就可省略）
+    # 1) 擁有者檢查
     if order.user != request.user:
         messages.error(request, '沒有權限操作此訂單')
         return redirect('order_list')
@@ -386,8 +386,13 @@ def choose_payment_method(request, order):
 # 買家上傳付款憑證
 # -------------------------
 @login_required(login_url='login')
-@order_buyer_required
+@order_exists_required 
 def upload_payment_proof(request, order):
+    # 擁有者檢查
+    if order.user != request.user:
+        messages.error(request, '沒有權限操作此訂單')
+        return redirect('order_list')
+    
     # 只允許「銀行匯款」的訂單上傳憑證
     if order.payment_category != 'bank':
         messages.error(request, '此訂單不需匯款，無法上傳憑證')
