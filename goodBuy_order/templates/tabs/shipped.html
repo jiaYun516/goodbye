@@ -1,0 +1,64 @@
+{% load static %}
+{# templates/tabs/shipped.html #}
+<div class="mb-3">
+  <h5 class="mb-0">已出貨</h5>
+</div>
+
+{% if orders_to_receive %}
+  <div class="order-container">
+    {% for order in orders_to_receive %}
+      <div class="order-card p-3 mb-3 border rounded shadow-sm">
+        <!-- 訂單標頭 -->
+        <div class="order-header d-flex justify-content-between mb-2">
+          <div>
+            <strong>訂單編號：</strong>{{ order.id }}  
+            <span class="ms-2 text-muted">下單時間：{{ order.date|date:"Y-m-d H:i" }}</span>
+          </div>
+          <div>
+            <span class="badge bg-info">已出貨</span>
+          </div>
+        </div>
+
+        <!-- 灰線 -->
+        <div class="order-divider mb-2"></div>
+
+        <!-- 訂單商品 -->
+        <div class="order-products mb-2">
+          {% for product_order in order.productorder_set.all %}
+            <div class="row align-items-center gx-2 mb-2">
+              <!-- 商品圖片 -->
+              <div class="col-md-2">
+                {% if product_order.product.img %}
+                  <img src="{{ product_order.product.img.url }}" class="product-img" alt="{{ product_order.product.name }}">
+                {% else %}
+                  <img src="{% static 'images/no_image.png' %}" class="product-img" alt="No image">
+                {% endif %}
+              </div>
+              <!-- 商品名稱與數量 -->
+              <div class="col-md-7">
+                <p class="mb-0"><strong>{{ product_order.product.name }}</strong></p>
+                <small class="text-muted">數量：{{ product_order.quantity }}</small>
+              </div>
+              <!-- 單價 -->
+              <div class="col-md-3 text-end">
+                <p class="mb-0">單價：${{ product_order.product.price }}</p>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+
+        <!-- 訂單總額 -->
+        <div class="order-footer d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
+          <div>
+            買家：<strong>{{ order.user.username }}</strong>
+          </div>
+          <div>
+            <span class="fw-bold">總金額：${{ order.total }}</span>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="alert alert-info">目前沒有已出貨的訂單。</div>
+{% endif %}

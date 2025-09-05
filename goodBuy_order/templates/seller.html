@@ -20,11 +20,19 @@
     {% endif %}
 
     <div class="action-buttons mb-4">
-      <button class="action-btn btn  me-2" data-tab="order">接單請求</button>
-      <button class="action-btn btn  me-2" data-tab="payment">付款確認</button>
-      <button class="action-btn btn me-2" data-tab="shipping">待出貨</button>
+      <button class="action-btn btn  me-2" data-tab="sellerall">全部</button>
+      <button class="action-btn btn  me-2" data-tab="order">帶確認</button>
+      <button class="action-btn btn  me-2" data-tab="payment">帶付款</button>
     </div>
-
+    <div class="action-buttons mb-4">
+      <button class="action-btn btn me-2" data-tab="shipping">待出貨</button>
+      <button class="action-btn btn me-2" data-tab="shipped">已出貨</button>
+      <button class="action-btn btn me-2" data-tab="completed">已完成</button>
+      <button class="action-btn btn me-2" data-tab="cancelled">已取消</button>
+    </div>
+    <div id="tab-sellerall">
+      {% include 'tabs/sellerall.html'  with orders=orders_pending %}
+    </div>
     <div id="tab-order">
       {% include 'tabs/order.html'   with orders=orders_pending %}
     </div>
@@ -34,7 +42,20 @@
     <div id="tab-shipping" style="display:none;">
       {% include 'tabs/shipping.html' with orders=orders_waitship %}
     </div>
-    
+    <!-- 已出貨 -->
+    <div id="tab-shipped" style="display:none;">
+      {% include 'tabs/shipped.html' with orders=orders_shipped %}
+    </div>
+
+    <!-- 已完成 -->
+    <div id="tab-completed" style="display:none;">
+      {% include 'tabs/completed.html' with orders=orders_completed %}
+    </div>
+
+    <!-- 已取消 -->
+    <div id="tab-cancelled" style="display:none;">
+      {% include 'tabs/cancelled.html' with orders=orders_cancelled %}
+    </div>
 
 <script src="{% static 'js/seller.js' %}"></script>
 </body>
