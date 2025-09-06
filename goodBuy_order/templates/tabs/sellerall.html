@@ -1,17 +1,16 @@
 {% load static %}
 <div class="mb-3">
-  <h5 class="mb-0">全部訂單</h5>
+  <h5 class="mb-0">全部訂單管理</h5>
 </div>
 
 <div class="order-container">
 
-  <!-- 待確認 -->
+  <!-- 待賣家確認 -->
   <div class="mb-4">
-    <h6 class="mb-2">待確認</h6>
-    {% for order in orders_all %}
-      {% if order.order_state_id == 2 %}
+    <h6 class="mb-2">待確認（買家已下單，等待你確認）</h6>
+    {% if orders_wait_seller %}
+      {% for order in orders_wait_seller %}
       <div class="order-card p-3 mb-3 border rounded shadow-sm">
-        <!-- 訂單標頭 -->
         <div class="order-header d-flex justify-content-between mb-2">
           <div>
             <strong>訂單編號：</strong>{{ order.id }}
@@ -19,11 +18,7 @@
           </div>
           <div><span class="badge bg-warning">待確認</span></div>
         </div>
-
-        <!-- 灰線 -->
         <div class="order-divider mb-2"></div>
-
-        <!-- 訂單商品 -->
         <div class="order-products mb-2">
           {% for product_order in order.productorder_set.all %}
           <div class="row align-items-center gx-2 mb-2">
@@ -44,25 +39,23 @@
           </div>
           {% endfor %}
         </div>
-
-        <!-- 訂單總額 -->
         <div class="order-footer d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
           <div>買家：<strong>{{ order.user.username }}</strong></div>
           <div><span class="fw-bold">總金額：${{ order.total }}</span></div>
         </div>
       </div>
-      {% endif %}
-    {% empty %}
+      {% endfor %}
+    {% else %}
       <div class="alert alert-info">目前沒有待確認的訂單。</div>
-    {% endfor %}
+    {% endif %}
   </div>
 
-  <!-- 待付款 -->
+  <!-- 待付款（買家已選付款方式，等待款項確認） -->
   <div class="order-divider my-3"></div>
   <div class="mb-4">
     <h6 class="mb-2">待付款</h6>
-    {% for order in orders_all %}
-      {% if order.order_state_id == 3 %}
+    {% if orders_need_payment %}
+      {% for order in orders_need_payment %}
       <div class="order-card p-3 mb-3 border rounded shadow-sm">
         <div class="order-header d-flex justify-content-between mb-2">
           <div>
@@ -71,9 +64,7 @@
           </div>
           <div><span class="badge bg-primary">待付款</span></div>
         </div>
-
         <div class="order-divider mb-2"></div>
-
         <div class="order-products mb-2">
           {% for product_order in order.productorder_set.all %}
           <div class="row align-items-center gx-2 mb-2">
@@ -94,24 +85,23 @@
           </div>
           {% endfor %}
         </div>
-
         <div class="order-footer d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
           <div>買家：<strong>{{ order.user.username }}</strong></div>
           <div><span class="fw-bold">總金額：${{ order.total }}</span></div>
         </div>
       </div>
-      {% endif %}
-    {% empty %}
+      {% endfor %}
+    {% else %}
       <div class="alert alert-info">目前沒有待付款的訂單。</div>
-    {% endfor %}
+    {% endif %}
   </div>
 
   <!-- 待出貨 -->
   <div class="order-divider my-3"></div>
   <div class="mb-4">
     <h6 class="mb-2">待出貨</h6>
-    {% for order in orders_all %}
-      {% if order.order_state_id == 4 %}
+    {% if orders_waitship %}
+      {% for order in orders_waitship %}
       <div class="order-card p-3 mb-3 border rounded shadow-sm">
         <div class="order-header d-flex justify-content-between mb-2">
           <div>
@@ -120,9 +110,7 @@
           </div>
           <div><span class="badge bg-info">待出貨</span></div>
         </div>
-
         <div class="order-divider mb-2"></div>
-
         <div class="order-products mb-2">
           {% for product_order in order.productorder_set.all %}
           <div class="row align-items-center gx-2 mb-2">
@@ -143,24 +131,23 @@
           </div>
           {% endfor %}
         </div>
-
         <div class="order-footer d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
           <div>買家：<strong>{{ order.user.username }}</strong></div>
           <div><span class="fw-bold">總金額：${{ order.total }}</span></div>
         </div>
       </div>
-      {% endif %}
-    {% empty %}
+      {% endfor %}
+    {% else %}
       <div class="alert alert-info">目前沒有待出貨的訂單。</div>
-    {% endfor %}
+    {% endif %}
   </div>
 
   <!-- 已出貨 -->
   <div class="order-divider my-3"></div>
   <div class="mb-4">
     <h6 class="mb-2">已出貨</h6>
-    {% for order in orders_all %}
-      {% if order.order_state_id == 5 %}
+    {% if orders_to_receive %}
+      {% for order in orders_to_receive %}
       <div class="order-card p-3 mb-3 border rounded shadow-sm">
         <div class="order-header d-flex justify-content-between mb-2">
           <div>
@@ -169,9 +156,7 @@
           </div>
           <div><span class="badge bg-success">已出貨</span></div>
         </div>
-
         <div class="order-divider mb-2"></div>
-
         <div class="order-products mb-2">
           {% for product_order in order.productorder_set.all %}
           <div class="row align-items-center gx-2 mb-2">
@@ -192,24 +177,23 @@
           </div>
           {% endfor %}
         </div>
-
         <div class="order-footer d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
           <div>買家：<strong>{{ order.user.username }}</strong></div>
           <div><span class="fw-bold">總金額：${{ order.total }}</span></div>
         </div>
       </div>
-      {% endif %}
-    {% empty %}
+      {% endfor %}
+    {% else %}
       <div class="alert alert-info">目前沒有已出貨的訂單。</div>
-    {% endfor %}
+    {% endif %}
   </div>
 
   <!-- 已完成 -->
   <div class="order-divider my-3"></div>
   <div class="mb-4">
     <h6 class="mb-2">已完成</h6>
-    {% for order in orders_all %}
-      {% if order.order_state_id == 6 %}
+    {% if orders_completed %}
+      {% for order in orders_completed %}
       <div class="order-card p-3 mb-3 border rounded shadow-sm">
         <div class="order-header d-flex justify-content-between mb-2">
           <div>
@@ -218,9 +202,7 @@
           </div>
           <div><span class="badge bg-secondary">已完成</span></div>
         </div>
-
         <div class="order-divider mb-2"></div>
-
         <div class="order-products mb-2">
           {% for product_order in order.productorder_set.all %}
           <div class="row align-items-center gx-2 mb-2">
@@ -241,24 +223,23 @@
           </div>
           {% endfor %}
         </div>
-
         <div class="order-footer d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
           <div>買家：<strong>{{ order.user.username }}</strong></div>
           <div><span class="fw-bold">總金額：${{ order.total }}</span></div>
         </div>
       </div>
-      {% endif %}
-    {% empty %}
+      {% endfor %}
+    {% else %}
       <div class="alert alert-info">目前沒有已完成的訂單。</div>
-    {% endfor %}
+    {% endif %}
   </div>
 
   <!-- 已取消 -->
   <div class="order-divider my-3"></div>
   <div class="mb-4">
     <h6 class="mb-2">已取消</h6>
-    {% for order in orders_all %}
-      {% if order.order_state_id == 7 or order.order_state_id == 8 or order.order_state_id == 9 or order.order_state_id == 10 %}
+    {% if orders_cancelled %}
+      {% for order in orders_cancelled %}
       <div class="order-card p-3 mb-3 border rounded shadow-sm">
         <div class="order-header d-flex justify-content-between mb-2">
           <div>
@@ -267,9 +248,7 @@
           </div>
           <div><span class="badge bg-danger">已取消</span></div>
         </div>
-
         <div class="order-divider mb-2"></div>
-
         <div class="order-products mb-2">
           {% for product_order in order.productorder_set.all %}
           <div class="row align-items-center gx-2 mb-2">
@@ -290,16 +269,15 @@
           </div>
           {% endfor %}
         </div>
-
         <div class="order-footer d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
           <div>買家：<strong>{{ order.user.username }}</strong></div>
           <div><span class="fw-bold">總金額：${{ order.total }}</span></div>
         </div>
       </div>
-      {% endif %}
-    {% empty %}
+      {% endfor %}
+    {% else %}
       <div class="alert alert-info">目前沒有已取消的訂單。</div>
-    {% endfor %}
+    {% endif %}
   </div>
 
 </div>

@@ -1,0 +1,246 @@
+{% load static %}
+<div class="mb-3">
+  <h5 class="mb-0">全部訂單</h5>
+</div>
+
+<div class="order-container">
+
+  <!-- 待選付款 -->
+  <div class="mb-4">
+    <h6 class="mb-2">待選付款</h6>
+    {% if orders_choose_payment %}
+      {% for order in orders_choose_payment %}
+        <div class="order-card p-3 mb-3 border rounded shadow-sm">
+          <div class="order-header d-flex justify-content-between mb-2">
+            <div>賣家：<strong>{{ order.shop.owner.username }}</strong></div>
+            <div><span class="badge bg-secondary">待選付款</span></div>
+          </div>
+
+          <div class="order-divider mb-2"></div>
+
+          <div class="order-products mb-2">
+            {% for product_order in order.productorder_set.all %}
+              <div class="row align-items-center gx-2 mb-2">
+                <div class="col-md-2">
+                  {% if product_order.product.img %}
+                    <img src="{{ product_order.product.img.url }}" class="product-img" alt="{{ product_order.product.name }}">
+                  {% else %}
+                    <img src="{% static 'images/no_image.png' %}" class="product-img" alt="No image">
+                  {% endif %}
+                </div>
+                <div class="col-md-7 d-flex align-items-center justify-content-between flex-wrap">
+                  <p class="mb-0"><strong>{{ order.shop.name }}</strong></p>
+                  <p class="mb-0"><strong>{{ product_order.product.name }}</strong></p>
+                  <p class="mb-0"><strong>數量:{{ product_order.quantity }}</strong></p>
+                  <p class="money mb-0">{{ product_order.product.price }}$</p>
+                </div>
+              </div>
+              {% if not forloop.last %}
+                <div class="order-divider my-2"></div> <!-- 訂單內商品間灰線 -->
+              {% endif %}
+            {% endfor %}
+          </div>
+
+          <div class="order-footer mt-2 pt-2 border-top text-end">
+            <span class="fw-bold">總金額：<span class="money">{{ order.total }}$</span></span>
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="alert alert-info">目前沒有待選付款的訂單。</div>
+    {% endif %}
+  </div>
+
+  <div class="order-divider my-3"></div> <!-- 分類之間灰線 -->
+
+  <!-- 待賣家確認 -->
+  <div class="mb-4">
+    <h6 class="mb-2">待確認</h6>
+    {% if orders_wait_seller %}
+      {% for order in orders_wait_seller %}
+        <div class="order-card p-3 mb-3 border rounded shadow-sm">
+          <div class="order-header d-flex justify-content-between mb-2">
+            <div>賣家：<strong>{{ order.shop.owner.username }}</strong></div>
+            <div><span class="badge bg-warning">待確認</span></div>
+          </div>
+
+          <div class="order-divider mb-2"></div>
+
+          <div class="order-products mb-2">
+            {% for product_order in order.productorder_set.all %}
+              <div class="row align-items-center gx-2 mb-2">
+                <div class="col-md-2">
+                  {% if product_order.product.img %}
+                    <img src="{{ product_order.product.img.url }}" class="product-img" alt="{{ product_order.product.name }}">
+                  {% else %}
+                    <img src="{% static 'images/no_image.png' %}" class="product-img" alt="No image">
+                  {% endif %}
+                </div>
+                <div class="col-md-7 d-flex align-items-center justify-content-between flex-wrap">
+                  <p class="mb-0"><strong>{{ order.shop.name }}</strong></p>
+                  <p class="mb-0"><strong>{{ product_order.product.name }}</strong></p>
+                  <p class="mb-0"><strong>數量:{{ product_order.quantity }}</strong></p>
+                  <p class="money mb-0">{{ product_order.product.price }}$</p>
+                </div>
+              </div>
+              {% if not forloop.last %}
+                <div class="order-divider my-2"></div>
+              {% endif %}
+            {% endfor %}
+          </div>
+
+          <div class="order-footer mt-2 pt-2 border-top text-end">
+            <span class="fw-bold">總金額：<span class="money">{{ order.total }}$</span></span>
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="alert alert-info">目前沒有待確認的訂單。</div>
+    {% endif %}
+  </div>
+
+  <div class="order-divider my-3"></div>
+
+  <!-- 待付款 -->
+  <div class="mb-4">
+    <h6 class="mb-2">待付款</h6>
+    {% if orders_need_payment %}
+      {% for order in orders_need_payment %}
+        <div class="order-card p-3 mb-3 border rounded shadow-sm">
+          <div class="order-header d-flex justify-content-between mb-2">
+            <div>賣家：<strong>{{ order.shop.owner.username }}</strong></div>
+            <div><span class="badge bg-primary">待付款</span></div>
+          </div>
+
+          <div class="order-divider mb-2"></div>
+
+          <div class="order-products mb-2">
+            {% for product_order in order.productorder_set.all %}
+              <div class="row align-items-center gx-2 mb-2">
+                <div class="col-md-2">
+                  {% if product_order.product.img %}
+                    <img src="{{ product_order.product.img.url }}" class="product-img" alt="{{ product_order.product.name }}">
+                  {% else %}
+                    <img src="{% static 'images/no_image.png' %}" class="product-img" alt="No image">
+                  {% endif %}
+                </div>
+                <div class="col-md-7 d-flex align-items-center justify-content-between flex-wrap">
+                  <p class="mb-0"><strong>{{ order.shop.name }}</strong></p>
+                  <p class="mb-0"><strong>{{ product_order.product.name }}</strong></p>
+                  <p class="mb-0"><strong>數量:{{ product_order.quantity }}</strong></p>
+                  <p class="money mb-0">{{ product_order.product.price }}$</p>
+                </div>
+              </div>
+              {% if not forloop.last %}
+                <div class="order-divider my-2"></div>
+              {% endif %}
+            {% endfor %}
+          </div>
+
+          <div class="order-footer mt-2 pt-2 border-top text-end">
+            <span class="fw-bold">總金額：<span class="money">{{ order.total }}$</span></span>
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="alert alert-info">目前沒有待付款的訂單。</div>
+    {% endif %}
+  </div>
+
+  <div class="order-divider my-3"></div>
+
+  <!-- 已出貨 -->
+  <div class="mb-4">
+    <h6 class="mb-2">已出貨</h6>
+    {% if orders_to_receive %}
+      {% for order in orders_to_receive %}
+        <div class="order-card p-3 mb-3 border rounded shadow-sm">
+          <div class="order-header d-flex justify-content-between mb-2">
+            <div>賣家：<strong>{{ order.shop.owner.username }}</strong></div>
+            <div><span class="badge bg-success">已出貨</span></div>
+          </div>
+
+          <div class="order-divider mb-2"></div>
+
+          <div class="order-products mb-2">
+            {% for product_order in order.productorder_set.all %}
+              <div class="row align-items-center gx-2 mb-2">
+                <div class="col-md-2">
+                  {% if product_order.product.img %}
+                    <img src="{{ product_order.product.img.url }}" class="product-img" alt="{{ product_order.product.name }}">
+                  {% else %}
+                    <img src="{% static 'images/no_image.png' %}" class="product-img" alt="No image">
+                  {% endif %}
+                </div>
+                <div class="col-md-7 d-flex align-items-center justify-content-between flex-wrap">
+                  <p class="mb-0"><strong>{{ order.shop.name }}</strong></p>
+                  <p class="mb-0"><strong>{{ product_order.product.name }}</strong></p>
+                  <p class="mb-0"><strong>數量:{{ product_order.quantity }}</strong></p>
+                  <p class="money mb-0">{{ product_order.product.price }}$</p>
+                </div>
+              </div>
+              {% if not forloop.last %}
+                <div class="order-divider my-2"></div>
+              {% endif %}
+            {% endfor %}
+          </div>
+
+          <div class="order-footer mt-2 pt-2 border-top text-end">
+            <span class="fw-bold">總金額：<span class="money">{{ order.total }}$</span></span>
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="alert alert-info">目前沒有已出貨的訂單。</div>
+    {% endif %}
+  </div>
+
+  <div class="order-divider my-3"></div>
+
+  <!-- 已取消 -->
+  <div class="mb-4">
+    <h6 class="mb-2">已取消</h6>
+    {% if orders_cancelled %}
+      {% for order in orders_cancelled %}
+        <div class="order-card p-3 mb-3 border rounded shadow-sm">
+          <div class="order-header d-flex justify-content-between mb-2">
+            <div>賣家：<strong>{{ order.shop.owner.username }}</strong></div>
+            <div><span class="badge bg-danger">已取消</span></div>
+          </div>
+
+          <div class="order-divider mb-2"></div>
+
+          <div class="order-products mb-2">
+            {% for product_order in order.productorder_set.all %}
+              <div class="row align-items-center gx-2 mb-2">
+                <div class="col-md-2">
+                  {% if product_order.product.img %}
+                    <img src="{{ product_order.product.img.url }}" class="product-img" alt="{{ product_order.product.name }}">
+                  {% else %}
+                    <img src="{% static 'images/no_image.png' %}" class="product-img" alt="No image">
+                  {% endif %}
+                </div>
+                <div class="col-md-7 d-flex align-items-center justify-content-between flex-wrap">
+                  <p class="mb-0"><strong>{{ order.shop.name }}</strong></p>
+                  <p class="mb-0"><strong>{{ product_order.product.name }}</strong></p>
+                  <p class="mb-0"><strong>數量:{{ product_order.quantity }}</strong></p>
+                  <p class="money mb-0">{{ product_order.product.price }}$</p>
+                </div>
+              </div>
+              {% if not forloop.last %}
+                <div class="order-divider my-2"></div>
+              {% endif %}
+            {% endfor %}
+          </div>
+
+          <div class="order-footer mt-2 pt-2 border-top text-end">
+            <span class="fw-bold">總金額：<span class="money">{{ order.total }}$</span></span>
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="alert alert-info">目前沒有已取消的訂單。</div>
+    {% endif %}
+  </div>
+
+</div>

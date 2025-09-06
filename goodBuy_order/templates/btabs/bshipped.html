@@ -12,8 +12,7 @@
         <!-- 訂單標頭 -->
         <div class="order-header d-flex justify-content-between mb-2">
           <div>
-            <strong>訂單編號：</strong>{{ order.id }}
-            <span class="ms-2 text-muted">下單時間：{{ order.date|date:"Y-m-d H:i" }}</span>
+              賣家：<strong>{{ order.shop.owner.username }}</strong>
           </div>
           <div>
             <span class="badge bg-success">已出貨</span>
@@ -26,40 +25,44 @@
         <!-- 訂單商品 -->
         <div class="order-products mb-2">
           {% for product_order in order.productorder_set.all %}
-          <div class="row align-items-center gx-2 mb-2">
-            <div class="col-md-2">
-              {% if product_order.product.img %}
-                <img src="{{ product_order.product.img.url }}" class="product-img" alt="{{ product_order.product.name }}">
-              {% else %}
-                <img src="{% static 'images/no_image.png' %}" class="product-img" alt="No image">
-              {% endif %}
+            <div class="row align-items-center gx-2 mb-2">
+              <div class="col-md-2">
+                {% if product_order.product.img %}
+                  <img src="{{ product_order.product.img.url }}" class="product-img" alt="{{ product_order.product.name }}">
+                {% else %}
+                  <img src="{% static 'images/no_image.png' %}" class="product-img" alt="No image">
+                {% endif %}
+              </div>
+              <div class="col-md-7 d-flex align-items-center justify-content-between flex-wrap">
+                  <p class="mb-0"><strong>{{ order.shop.name }}</strong></p>
+                  <p class="mb-0"><strong>{{ product_order.product.name }}</strong></p>
+                  <p class="mb-0"><strong>數量: {{ product_order.quantity }}</strong></p>
+                  <p class="money mb-0">{{ product_order.product.price }}$</p>
+              </div>
             </div>
-            <div class="col-md-7">
-              <p class="mb-0"><strong>{{ product_order.product.name }}</strong></p>
-              <small class="text-muted">數量：{{ product_order.quantity }}</small>
-            </div>
-            <div class="col-md-3 text-end">
-              <p class="mb-0">單價：${{ product_order.product.price }}</p>
-            </div>
-          </div>
           {% endfor %}
         </div>
 
-        <!-- 訂單總額 + 操作按鈕 -->
-        <div class="order-footer mt-2 pt-2 border-top d-flex justify-content-between align-items-center">
+        <!-- 底部分隔線 + 訂單編號與時間 -->
+        <div class="order-divider mb-2"></div>
+        <div class="d-flex justify-content-between align-items-center mb-2">
           <div>
-            賣家：<strong>{{ order.shop.owner.username }}</strong>
+            <strong>訂單編號：</strong>{{ order.id }}
+            <span class="ms-2 text-muted">下單時間：{{ order.date|date:"Y-m-d H:i" }}</span>
           </div>
-          <div class="d-flex align-items-center gap-2">
-            <span class="fw-bold">總金額：${{ order.total }}</span>
-            <!-- 確認收貨按鈕 -->
-            <form method="post" action="{% url 'buyer_action' order.id %}" class="d-inline">
-              {% csrf_token %}
-              <input type="hidden" name="action" value="confirm_received">
-              <input type="hidden" name="next" value="{{ request.get_full_path }}">
-              <button type="submit" class="btn2 btn-success btn-sm js-confirm" data-msg="確認已收貨？">確認收貨</button>
-            </form>
+          <div>
+            <strong>總金額：<span class="money">{{ order.total }}$</span></strong>
           </div>
+        </div>
+
+        <!-- 操作按鈕 -->
+        <div class="text-end">
+          <form method="post" action="{% url 'buyer_action' order.id %}" class="d-inline">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="confirm_received">
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <button type="submit" class="btn2 btn-lg btn-success js-confirm" data-msg="確認已收貨？">確認收貨</button>
+          </form>
         </div>
       </div>
       {% endif %}

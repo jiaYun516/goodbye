@@ -1,66 +1,74 @@
 {% load static %}
-{# tabs_buyer/wait_seller.html #}
+{# templates/btabs/wait_seller.html #}
 <div class="mb-3">
   <h5 class="mb-0">賣家待確認</h5>
 </div>
 
-{% if orders %}
+{% if orders_wait_seller %}
   <div class="order-container">
-    {% for order in orders %}
-      {% if order.order_state_id == 2 %}
+    {% for order in orders_wait_seller %}
       <div class="order-card p-3 mb-3 border rounded shadow-sm">
-        <!-- 左上角賣家 -->
-        <div class="order-header mb-2">
-          <strong>{{ order.shop.owner.username }}</strong>
+        <!-- 訂單標頭 -->
+        <div class="order-header d-flex justify-content-between mb-2">
+          <div>
+            賣家：<strong>{{ order.shop.owner.username }}</strong>
+          </div>
+          <div>
+            <span class="badge bg-warning">待確認</span>
+          </div>
         </div>
+
         <!-- 灰線 -->
         <div class="order-divider mb-2"></div>
 
-        <!-- 訂單基本資訊 -->
-        <div class="order-content mb-2">
+        <!-- 訂單商品 -->
+        <div class="order-products mb-2">
           {% for product_order in order.productorder_set.all %}
-          <div class="d-flex align-items-center mb-2">
-            {% if product_order.product.img %}
-              <img src="{{ product_order.product.img.url }}" class="product-img" alt="{{ product_order.product.name }}">
-            {% else %}
-              <img src="{% static 'images/no_image.png' %}" class="product-img" alt="No image">
-            {% endif %}
-            <div class="d-flex align-items-center flex-grow-1 justify-content-center custom-gap">
-              <p class="mb-0">{{ product_order.product.name }}</p>
-              <p class="mb-0">數量：{{ product_order.quantity }}</p>
-              <p class="money mb-0">{{ product_order.product.price }}$</p>
+            <div class="row align-items-center gx-2 mb-2">
+              <div class="col-md-2">
+                {% if product_order.product.img %}
+                  <img src="{{ product_order.product.img.url }}" class="product-img" alt="{{ product_order.product.name }}">
+                {% else %}
+                  <img src="{% static 'images/no_image.png' %}" class="product-img" alt="No image">
+                {% endif %}
+              </div>
+              <div class="col-md-7 d-flex align-items-center justify-content-between flex-wrap">
+                <p class="mb-0"><strong>{{ order.shop.name }}</strong></p>
+                <p class="mb-0"><strong>{{ product_order.product.name }}</strong></p>
+                <p class="mb-0"><strong>數量: {{ product_order.quantity }}</strong></p>
+                <p class="money mb-0">{{ product_order.product.price }}$</p>
+              </div>
             </div>
-          </div>
+            {% if not forloop.last %}
+              <div class="order-divider my-2"></div>
+            {% endif %}
           {% endfor %}
         </div>
-        <div class="text-end mt-2">
-          總金額：<span class="money">{{ order.total }}{% if order.second_supplement %}（含二補 {{ order.second_supplement }}）{% endif %}$</span>
-        </div>
-        <!-- 操作按鈕靠右 -->
-        <div class="order-actions mt-3 d-flex justify-content-end flex-wrap gap-2">
-          <!-- 取消訂單（state 2 允許） -->
-          <form method="post" action="{% url 'buyer_action' order.id %}" class="d-inline">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="cancel_order">
-            <input type="hidden" name="next" value="{{ request.get_full_path }}">
-            <button type="submit" class="btn btn-outline-danger btn-sm js-confirm" data-msg="確定取消此訂單？">取消訂單</button>
-          </form>
+
+        <!-- 訂單總額 + 訂單資訊 + 操作按鈕 -->
+        <div class="order-footer mt-2 pt-2 border-top">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <strong>訂單編號：</strong>{{ order.id }}
+              <span class="ms-2 text-muted">下單時間：{{ order.date|date:"Y-m-d H:i" }}</span>
+            </div>
+            <div>
+              <strong>總金額：<span class="money">{{ order.total }}{% if order.second_supplement %}（含二補 {{ order.second_supplement }}）{% endif %}$</span></strong>
+            </div>
+          </div>
+          <div class="mt-2 text-end">
+            <!-- 取消訂單按鈕 -->
+            <form method="post" action="{% url 'buyer_action' order.id %}" class="d-inline">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="cancel_order">
+              <input type="hidden" name="next" value="{{ request.get_full_path }}">
+              <button type="submit" class="btn2 btn-outline-danger btn-sm js-confirm" data-msg="確定取消此訂單？">取消訂單</button>
+            </form>
+          </div>
         </div>
       </div>
-      {% endif %}
     {% endfor %}
   </div>
 {% else %}
-  <div class="alert alert-info border-0 bg-light text-muted">
-    目前沒有賣家待確認的訂單。
-  </div>
+  <div class="alert alert-info">目前沒有賣家待確認的訂單。</div>
 {% endif %}
-
-<script>
-document.addEventListener('click', function(e) {
-  const btn = e.target.closest('.js-confirm');
-  if (btn && !confirm(btn.dataset.msg || '確定要執行此操作嗎？')) {
-    e.preventDefault();
-  }
-});
-</script>

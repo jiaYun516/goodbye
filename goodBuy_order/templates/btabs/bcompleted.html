@@ -11,8 +11,7 @@
         <!-- 訂單標頭 -->
         <div class="order-header d-flex justify-content-between mb-2">
           <div>
-            <strong>訂單編號：</strong>{{ order.id }}
-            <span class="ms-2 text-muted">下單時間：{{ order.date|date:"Y-m-d H:i" }}</span>
+              賣家：<strong>{{ order.shop.owner.username }}</strong>
           </div>
           <div>
             <span class="badge bg-success">已完成</span>
@@ -33,13 +32,12 @@
                   <img src="{% static 'images/no_image.png' %}" class="product-img" alt="No image">
                 {% endif %}
               </div>
-              <div class="col-md-7">
-                <p class="mb-0"><strong>{{ product_order.product.name }}</strong></p>
-                <small class="text-muted">數量：{{ product_order.quantity }}</small>
-              </div>
-              <div class="col-md-3 text-end">
-                <p class="mb-0">單價：${{ product_order.product.price }}</p>
-              </div>
+                <div class="col-md-7 d-flex align-items-center justify-content-between flex-wrap">
+                    <p class="mb-0"><strong>{{ order.shop.name }}</strong></p>
+                    <p class="mb-0"><strong>{{ product_order.product.name }}</strong></p>
+                    <p class="mb-0"><strong>數量:{{ product_order.quantity }}</strong></p>
+                    <p class="money mb-0">{{ product_order.product.price }}$</p>
+                </div>
             </div>
           {% endfor %}
         </div>
@@ -48,14 +46,15 @@
         <div class="order-footer mt-2 pt-2 border-top">
           <div class="d-flex justify-content-between align-items-center">
             <div>
-              賣家：<strong>{{ order.shop.owner.username }}</strong>
+              <strong>訂單編號：</strong>{{ order.id }}
+              <span class="ms-2 text-muted">下單時間：{{ order.date|date:"Y-m-d H:i" }}</span>
             </div>
             <div>
-              <span class="fw-bold">總金額：${{ order.total }}</span>
+              <strong>總金額：<span class="money">{{ order.total }}$</span></strong>
             </div>
           </div>
           <div class="mt-2 text-end">
-            <a class="btn2 btn-sm btn-outline-primary">
+            <a class="btn2 btn-lg btn-outline-primary">
               給個評價
             </a>
           </div>
