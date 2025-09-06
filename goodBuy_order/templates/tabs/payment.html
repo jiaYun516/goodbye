@@ -4,14 +4,15 @@
   <h5 class="mb-0">付款確認</h5>
 </div>
 
-{% if orders_waitpay %}
+{% if orders_need_payment %}
   <div class="order-container">
-    {% for order in orders_waitpay %}
+    {% for order in orders_need_payment %}
       {% if order.order_state_id == 3 %}
       <div class="order-card p-3 mb-3 border rounded shadow-sm">
         <!-- 左上角買家 -->
         <div class="order-header mb-2">
           <strong>{{ order.user.username }}</strong>
+          <strong>訂單編號：</strong>{{ order.id }}
         </div>
         <!-- 灰線 -->
         <div class="order-divider mb-2"></div>
