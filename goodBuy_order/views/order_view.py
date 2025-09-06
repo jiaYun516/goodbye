@@ -88,26 +88,26 @@ def order_list(request, role='buyer'):
 
     if role == 'buyer':
         ctx_common.update({
-            "orders_all":            orders_all,
-            "orders_choose_payment": orders_choose_payment,
-            "order_need_payment":  orders_need_payment,
-            "orders_wait_seller":    orders_wait_seller,
-            "orders_waitship":       orders_waitship,
-            "orders_to_receive":     orders_to_receive,
-            "orders_completed":      orders_completed,
-            "orders_cancelled":      orders_cancelled,
+            "orders_all":            orders_all,#全部
+            "orders_choose_payment": orders_choose_payment,#待選付款
+            "orders_need_payment":  orders_need_payment,#待付款
+            "orders_wait_seller":    orders_wait_seller,#待賣家確認
+            "orders_waitship":       orders_waitship,#待出貨
+            "orders_to_receive":     orders_to_receive,#已出貨
+            "orders_completed":      orders_completed,#已完成
+            "orders_cancelled":      orders_cancelled,#已取消
         })
         return render(request, "buyer.html", ctx_common)
     
     else:  # seller
         ctx_common.update({
-            "orders_all":            orders_all,
-            "order_need_payment":  orders_need_payment,
-            "orders_wait_seller":    orders_wait_seller,
-            "orders_waitship":       orders_waitship,
-            "orders_to_receive":     orders_to_receive,
-            "orders_completed":      orders_completed,
-            "orders_cancelled":      orders_cancelled,
+            "orders_all":            orders_all, #全部
+            "orders_need_payment":  orders_need_payment,#付款確認
+            "orders_wait_seller":    orders_wait_seller,#賣家確認
+            "orders_waitship":       orders_waitship,#待出貨
+            "orders_to_receive":     orders_to_receive,#已出貨
+            "orders_completed":      orders_completed,#已完成
+            "orders_cancelled":      orders_cancelled,#已取消
         })
         return render(request, "seller.html", ctx_common)
 

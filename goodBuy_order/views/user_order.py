@@ -391,17 +391,17 @@ def upload_payment_proof(request, order):
     # 擁有者檢查
     if order.user != request.user:
         messages.error(request, '沒有權限操作此訂單')
-        return redirect('order_list')
+        return redirect('buyer')
     
     # 只允許「銀行匯款」的訂單上傳憑證
     if order.payment_category != 'bank':
         messages.error(request, '此訂單不需匯款，無法上傳憑證')
-        return redirect('buyer_order_detail', order_id=order.id)
+        return redirect('buyer', order_id=order.id)
 
     # 已有待審憑證就禁止重複上傳
     if getattr(order, 'has_pending_payment_proof', False):
         messages.error(request, '您已上傳付款憑證，請等待賣家確認或退回後再試')
-        return redirect('buyer_order_detail', order_id=order.id)
+        return redirect('buyer', order_id=order.id)
 
     # 只取本店的「銀行」帳戶（名稱不在 COD_NAMES 的都視為銀行）
     remit_accounts = (
@@ -417,20 +417,20 @@ def upload_payment_proof(request, order):
         account_raw = request.POST.get('payment_account_id')
         if not account_raw:
             messages.error(request, '請選擇匯款帳戶')
-            return redirect('buyer_order_detail', order_id=order.id)
+            return redirect('buyer', order_id=order.id)
 
         try:
             account_id = int(account_raw)
         except (TypeError, ValueError):
             messages.error(request, '匯款帳戶無效')
-            return redirect('buyer_order_detail', order_id=order.id)
+            return redirect('buyer', order_id=order.id)
 
         try:
             # 僅允許本店、且屬於「銀行」清單中的帳戶
             shop_payment = remit_accounts.get(id=account_id)
         except ShopPayment.DoesNotExist:
             messages.error(request, '匯款帳戶無效')
-            return redirect('buyer_order_detail', order_id=order.id)
+            return redirect('buyer', order_id=order.id)
 
         if form.is_valid():
             payment_record = form.save(commit=False)
@@ -444,7 +444,7 @@ def upload_payment_proof(request, order):
             order.save()
 
             messages.success(request, '匯款資訊已上傳，等待賣家確認')
-            return redirect('buyer_order_detail', order_id=order.id)
+            return redirect('buyer', order_id=order.id)
         else:
             messages.error(request, '表單內容有誤，請重新確認')
     else:
