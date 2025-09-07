@@ -1,6 +1,6 @@
 /* 背景 */
 body {
-    background-color: #fef7e5;
+    background: #FDF7EC;
     font-family: "Noto Sans TC", sans-serif;
     padding-bottom: 20px;
 }
@@ -96,17 +96,21 @@ h4, h5 {
     align-items: flex-start;
 }
 
+.btn-outline-secondary {
+    margin-right: 10px;
+    margin-top: 10px;
+}
+
 .action-buttons {
     display: flex;
     gap: 8px;
 }
 
 .action-btn {
-    width: 50px;
-    height: 50px;
+    width: 40px;
+    height: 40px;
     border: 3px solid #ccc;
     background-color: #fff;
-    border-radius: 50px;
     font-size: 18px;
     line-height: 32px;
     text-align: center;
@@ -116,6 +120,7 @@ h4, h5 {
     justify-content: center;
     align-items: center;
     transition: background-color 0.2s, border-color 0.2s;
+    border-radius: 9px;
 }
 
 .action-btn:hover {
@@ -151,8 +156,15 @@ h4, h5 {
   display: flex;
   gap: 8px;
 }
+
 .icon-img {
-    width: 20px;
-    height: 20px;
     object-fit: contain;  /* 防止圖片變形 */
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
 }
+
