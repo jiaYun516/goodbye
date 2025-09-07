@@ -1,8 +1,6 @@
 {% load static %}
-<button type="button"
-        class="btn btn-sm btn-outline-secondary position-relative btn-copy-shop action-btn"
-        title="複製商店資訊"
-        data-copy-url="{% url 'shop_copy' shop.id %}">
-    <img src="/static/img/copy.png" alt="icon" class="icon-copy">
-</button>
-<script src="{% static 'js/copy.js' %}"></script>
+<a href="{% url 'shop_copy' shop.id %}"
+   class="btn btn-sm btn-outline-secondary position-relative action-btn"
+   title="複製商店資訊">
+  <img src="{% static 'img/copy.png' %}" alt="copy" class="icon-copy">
+</a>
