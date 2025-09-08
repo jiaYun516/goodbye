@@ -13,7 +13,13 @@ class User(AbstractUser):
         return self.username  
 
     @property
-    def average_rank(self):
+    # 賣家星級
+    def average_rank_as_seller(self):
         from goodBuy_order.models import Comment
-        avg = Comment.objects.filter(user=self).aggregate(avg_rank=Avg('rank'))['avg_rank']
-        return round(avg, 2) if avg is not None else None
+        return Comment.objects.filter(target=self, role='buyer').aggregate(avg=Avg('rank'))['avg']
+
+    @property
+    # 買家星級
+    def average_rank_as_buyer(self):
+        from goodBuy_order.models import Comment
+        return Comment.objects.filter(target=self, role='seller').aggregate(avg=Avg('rank'))['avg']
