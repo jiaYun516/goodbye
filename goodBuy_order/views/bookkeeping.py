@@ -96,6 +96,8 @@ def payment_timeline(request):
         'all_payments': all_payments,
         'total_income': total_income,
         'total_expense': total_expense,
+        'months': list(range(1, 13)),                # ← 新增
+        'year_options': [year - 2, year - 1, year],  # ← 新增（要幾年自己調整）
     })
 
 # -----------------

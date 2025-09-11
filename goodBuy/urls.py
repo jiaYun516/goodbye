@@ -11,10 +11,12 @@ urlpatterns = [
     path('', include('goodBuy_web.urls')),
     path('user/', include('goodBuy_web.urls.user')),
     path('user/', include('goodBuy_order.urls.user')),
+    path('user/', include('goodBuy_order.urls')),
     path('user/', include('goodBuy_tag.urls.user')),
     path('user/', include('goodBuy_shop.urls.user')),
     path('user/blacklist/', include('goodBuy_web.urls.blacklist')),
     path('user/profile/', include('goodBuy_web.urls.profile')),
+
 
 
     path('shop/', include('goodBuy_shop.urls.shop')),
@@ -29,6 +31,7 @@ urlpatterns = [
     path('order/payment/', include('goodBuy_order.urls.payment')),
     path('cart/', include('goodBuy_order.urls.cart')),
     path('comment/', include('goodBuy_order.urls.comment')),
+    
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

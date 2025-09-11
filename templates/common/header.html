@@ -71,20 +71,20 @@
       <br>
       <li><a href="{% url 'home' %}">首頁</a></li>
       <li><a href="{% url 'my_shops_collected' %}">收藏</a></li>
-      <li><a href="/user/timeline/">記帳本</a></li>
+      <li><a href="{% url 'payment_timeline' %}">記帳本</a></li>
       <li><a href="{% url 'blacklist' %}">黑名單</a></li>
     </ul>
     <hr>
     <ul class="sidebar-links">
       <br>
-      <li><a href="/shop/add/">新增賣場</a></li>
+      <li><a href="{% url 'add_shop' %}">新增賣場</a></li>
       <li><a href="{% url 'view_profile' request.user.id %}">我的賣場</a></li>
       <li><a href="{% url 'seller' %}">賣方管理</a></li>
     </ul>
     <hr>
     <ul class="sidebar-links">
       <br>
-      <li><a href="/want/add/">發布收物帖</a></li>
+      <li><a href="{% url 'add_want' %}">發布收物帖</a></li>
       <li><a href="{% url 'buyer' %}">買方管理</a></li>
     </ul>
     
@@ -116,9 +116,9 @@
       <div class="user-text"><h3>未登入</h3></div>
     </div>
     <div class="user-actions">
-      <a href="/login/" class="Options">登入</a>
+      <a href="{% url 'login' %}" class="Options">登入</a>
       <p>（登入一下又不會少一塊肉）</p>
-      <a href="/register/" class="Options">註冊</a>
+      <a href="{% url 'register' %}" class="Options">註冊</a>
       <p>（咳咳註冊一個花不了幾分鐘）</p>
     </div>
     <div class="sidebar-bottom">
