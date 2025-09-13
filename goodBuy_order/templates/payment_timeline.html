@@ -3,55 +3,49 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
+  <title>記帳本</title>
   <link rel="stylesheet" href="{% static 'css/payment_timeline.css' %}">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
 <div class="header">{% include 'base.html' %}</div>
 <div class="gb-ledger container-lg">
 
-  <!-- 頁首：標題 + 月份 pill -->
-  <!-- 頁首：標題 + 年/月下拉 -->
-<!-- 第一行：只有標題 -->
-<div class="gb-ledger__top">
-  <h1 class="gb-ledger__title">記帳本</h1>
-</div>
+  <!-- 第一行：標題 -->
+  <div class="gb-ledger__top">
+    <h1 class="gb-ledger__title">記帳本</h1>
+  </div>
 
-<!-- 第二行：搜尋 + 年/月下拉（換到新的一行） -->
-<div class="gb-toolbar">
+  <!-- 第二行：搜尋 + 年/月下拉 + 按鈕 -->
+  <div class="gb-toolbar d-flex justify-content-between align-items-center">
+    <form id="filterForm" method="get" class="gb-month d-flex">
 
+  <!-- 年份下拉 -->
+  <select name="year" class="gb-select" onchange="this.form.submit()">
+    {% for y in year_options %}
+      <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}年</option>
+    {% endfor %}
+  </select>
 
-  <!-- 右側：年份 / 月份選擇（用 GET 提交） -->
-  <form id="filterForm" method="get" class="gb-month">
-    <select name="year" class="gb-select" onchange="this.form.submit()">
-      <option value="{{ year|add:'-2' }}" {% if year|add:'-2' == year %}selected{% endif %}>{{ year|add:"-2" }}年</option>
-      <option value="{{ year|add:'-1' }}" {% if year|add:'-1' == year %}selected{% endif %}>{{ year|add:"-1" }}年</option>
-      <option value="{{ year }}" selected>{{ year }}年</option>
-    </select>
+  <!-- 月份下拉 -->
+  <select name="month" class="gb-select ms-2" onchange="this.form.submit()">
+    {% for m in months %}
+      <option value="{{ m }}" {% if month == m %}selected{% endif %}>{{ m }}月</option>
+    {% endfor %}
+  </select>
 
-    <select name="month" class="gb-select" onchange="this.form.submit()">
-      <option value="1"  {% if month == 1  %}selected{% endif %}>1月</option>
-      <option value="2"  {% if month == 2  %}selected{% endif %}>2月</option>
-      <option value="3"  {% if month == 3  %}selected{% endif %}>3月</option>
-      <option value="4"  {% if month == 4  %}selected{% endif %}>4月</option>
-      <option value="5"  {% if month == 5  %}selected{% endif %}>5月</option>
-      <option value="6"  {% if month == 6  %}selected{% endif %}>6月</option>
-      <option value="7"  {% if month == 7  %}selected{% endif %}>7月</option>
-      <option value="8"  {% if month == 8  %}selected{% endif %}>8月</option>
-      <option value="9"  {% if month == 9  %}selected{% endif %}>9月</option>
-      <option value="10" {% if month == 10 %}selected{% endif %}>10月</option>
-      <option value="11" {% if month == 11 %}selected{% endif %}>11月</option>
-      <option value="12" {% if month == 12 %}selected{% endif %}>12月</option>
-    </select>
-  </form>
-</div>
+</form>
 
-
-
+    <div class="gb-actions">
+      <button type="button" id="btnLine" class="btn btn-outline-primary btn-sm ms-2">全年收支折線圖</button>
+      <button type="button" id="btnPie" class="btn btn-outline-success btn-sm ms-2">支出圓餅圖</button>
+    </div>
+  </div>
 
   <!-- 明細卡片表格 -->
-  <div class="gb-card">
+  <div class="gb-card mt-3">
     <table class="gb-table">
       <thead>
         <tr>
@@ -72,10 +66,7 @@
               -
             {% endif %}
           </td>
-
-          <!-- 價格：以絕對值呈現（若你有單價欄位可替換） -->
           <td class="text-right">${{ p.amount|floatformat:"0" }}</td>
-
           <td class="ellipsis">
             {% if p.order %}
               {% with cat=p.order.payment_category %}
@@ -87,11 +78,8 @@
                   {{ cat }}
                 {% endif %}
               {% endwith %}
-            {% else %}
-              -
-            {% endif %}
+            {% else %}-{% endif %}
           </td>
-
           <td class="text-right">
             {% if p.direction_type == '收入' %}
               <span class="money-in">+ {{ p.amount|floatformat:"0" }}</span>
@@ -99,24 +87,36 @@
               <span class="money-out">- {{ p.amount|floatformat:"0" }}</span>
             {% endif %}
           </td>
-
           <td>{{ p.pay_time|date:"Y/m/d" }}</td>
         </tr>
       {% empty %}
-        <tr>
-          <td colspan="5" class="empty">這個月份尚無任何收支紀錄</td>
-        </tr>
+        <tr><td colspan="5" class="empty">這個月份尚無任何收支紀錄</td></tr>
       {% endfor %}
       </tbody>
     </table>
   </div>
 
-  <!-- 底部總計條 -->
+  <!-- 總計 -->
   <div class="gb-total">
     <div class="gb-total__out">總支出：<b>{{ total_expense|default:0 }}</b> $</div>
     <div class="gb-total__in">總收入：<b>{{ total_income|default:0 }}</b> $</div>
   </div>
 
+  <!-- 圖表區 -->
+  <div id="chartsSection" class="gb-charts container-lg" style="display:none; margin-top:24px;">
+    <div class="gb-card mb-4 p-3">
+      <h5 class="mb-3">全年收支折線圖（{{ year }} 年）</h5>
+      <canvas id="lineChart" height="120"></canvas>
+    </div>
+    <div class="gb-card p-3">
+      <h5 class="mb-3">支出圓餅圖（{{ year }} 年{% if month %} / {{ month }} 月{% endif %}）</h5>
+      <canvas id="pieChart" height="120"></canvas>
+      <div class="text-muted small mt-2" id="pieMeta"></div>
+    </div>
+  </div>
+
 </div>
+
+<script src="{% static 'js/payment_timeline.js' %}"></script>
 </body>
 </html>
