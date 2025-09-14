@@ -156,7 +156,7 @@ def audit_payment(request, payment, action='confirm'):
                 # 其他狀態理論上不會到；保守處理
                 messages.warning(request, f'目前付款狀態({cur})未定義確認邏輯，已僅標記憑證為已確認')
                 payment.save()
-                return redirect('view_payment_proofs', order_id=order.id)
+                return redirect('seller')
 
             # 儲存訂單與憑證
             order.save()
@@ -168,7 +168,7 @@ def audit_payment(request, payment, action='confirm'):
             payment.save()
             messages.success(request, '已退回憑證')
 
-    return redirect('view_payment_proofs', order_id=order.id)
+    return redirect('seller')
 
 # -------------------------
 # 賣家通知付款
