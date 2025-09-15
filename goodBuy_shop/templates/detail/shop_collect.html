@@ -1,0 +1,15 @@
+{% load static %}
+<div class="left-box d-flex flex-column align-items-center me-4 main-left-box">
+        <img id="main-image" src="{{ shop.cover_url }}" class="main-image mb-2 gallery-item active" data-src="{{ shop.cover_url }}" alt="封面主圖">
+        {% if user.is_authenticated and user.id != shop.owner.id %}
+        <a href="{% url 'shop_collect_toggle' shop.id %}" class="btn btn-collect">
+            {% if shop.is_collected %}
+                <img src="{% static 'img/full_heart.png' %}" alt="icon" class="icon-heart" />
+                取消收藏
+            {% else %}
+                <img src="{% static 'img/heart.png' %}" alt="icon" class="icon-heart" />
+                收藏
+            {% endif %}
+        </a>
+    {% endif %}
+</div>

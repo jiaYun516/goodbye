@@ -5,6 +5,7 @@ from goodBuy_web.models import User
 from .permission import Permission
 from .shop_state import ShopState
 from .purchase_priority import PurchasePriority
+from django.templatetags.static import static
 # -------------------------
 # 商店
 # -------------------------
@@ -75,3 +76,12 @@ class Shop(models.Model):
     @property
     def tags(self):
         return self.name or ""
+    
+    #商店封面圖
+    @property
+    def cover_url(self):
+        img = self.images.filter(is_cover=True).first() or self.images.first()
+        try:
+            return img.img.url if img and img.img else static('img/no_update.png')
+        except Exception:
+            return static('img/no_update.png')

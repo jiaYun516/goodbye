@@ -470,3 +470,7 @@ input[type="number"] {
     height: 20px;
     object-fit: contain;  /* 防止圖片變形 */
 }
+
+.new-settings{
+    margin-top: 5px ;
+}
