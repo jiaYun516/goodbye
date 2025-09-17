@@ -19,21 +19,23 @@
       </p>
     </div>
 
-    <!-- div 3 信譽度 -->
+    <!-- div 3 賣家評價 -->
     <div class="col-6 col-md-3 mb-2 mb-md-0">
       <span>
         <i class="fa-regular fa-thumbs-up"></i>
-        信譽度：<b class="value">
-          {% if average_rank %}{{ average_rank }}{% else %}無評價{% endif %}
+          賣家評價：<b class="value">
+            {% if shop.owner.average_rank_as_seller %}{{ shop.owner.average_rank_as_seller }}{% else %}無評價{% endif %}
         </b>
       </span>
     </div>
 
-    <!-- div 4 粉絲數 -->
+    <!-- div 4 買家評價 -->
     <div class="col-6 col-md-3">
       <span>
         <i class="fa-regular fa-user"></i>
-        粉絲數：<b class="value">{{ fans_count|default:0 }}</b>
+        買家評價：<b class="value">
+          {% if shop.owner.average_rank_as_buyer %}{{ shop.owner.average_rank_as_buyer }}{% else %}無評價{% endif %}
+        </b>
       </span>
     </div>
 
