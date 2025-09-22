@@ -23,26 +23,26 @@ class PurchaseIntent(models.Model):
         - 不讓同一使用者的意向總量超過庫存剩餘（扣除其他人的意向）
         回傳 (IntentProduct, 實際增加量, 目前自己的總量, 全體可分配上限)
         """
-        # 1) 查商品 + 加鎖
+        # 查商品 + 加鎖
         p = Product.objects.select_for_update().select_related('shop').get(pk=product.pk)
 
-        # 2) 取得/建立本人的 IntentProduct（設 quantity=0 避免 NOT NULL）
+        # 取得/建立本人的 IntentProduct（設 quantity=0 避免 NOT NULL）
         ip, _ = IntentProduct.objects.get_or_create(
             intent=self, product=p, defaults={'quantity': 0}
         )
         # 再鎖這筆行
         ip = IntentProduct.objects.select_for_update().get(pk=ip.pk)
 
-        # 3) 其他人的意向總量（不含自己這筆）
+        # 其他人的意向總量（不含自己這筆）
         others_total = (IntentProduct.objects
                         .filter(product=p)
                         .exclude(pk=ip.pk)
                         .aggregate(total=Sum('quantity'))['total'] or 0)
 
-        # 4) 全體剩餘可分配
+        # 全體剩餘可分配
         remaining_for_all = max(p.stock - others_total, 0)
 
-        # 5) 本次可增加量
+        # 本次可增加量
         add_qty = int(add_qty or 0)
         if add_qty < 0:
             add_qty = 0
