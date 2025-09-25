@@ -5,11 +5,17 @@ body {
     font-family: Arial, sans-serif;
     background: #FDF7EC;
     color: #333;
-    margin-top: 150px;
+    margin-top: 150px;  
 }
 
 .container {
     margin-top: 20px;
+}
+
+.row.no-gutters {
+    margin-left: 0;
+    margin-right: 0;
+    gap: 0; /* Bootstrap 5 可以用 gap 代替 g-2 */
 }
 
 /* 卡片樣式 */
@@ -288,7 +294,7 @@ h5 {
     background-color: white;
     color: #F4A7B9;
     border: 2px solid #F4A7B9;
-    padding: 10px 30px;
+    padding: 0px 0px;
     border-radius: 10px;
     font-weight: bold;
     margin-right: 10px;
@@ -473,4 +479,57 @@ input[type="number"] {
 
 .new-settings{
     margin-top: 5px ;
+}
+
+.quantity-wrapper {
+    display: flex;
+    flex-shrink: 0;
+}
+
+.quantity-wrapper .quantity-input {
+    width: 50px;
+    padding: 0;
+    text-align: center;
+}
+
+.quantity-wrapper .minus-btn,
+.quantity-wrapper .plus-btn {
+    width: 30px;
+    height: 32px;
+    padding: 0;
+}
+
+.add-cart-btn {
+    white-space: nowrap;
+    justify-content: center;    /* 水平置中文字 */
+    width: 120px;
+}
+@media (max-width: 576px) {
+    .flex-sm-row {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    /* 讓加入購物車水平置中 */
+    .add-cart-btn {
+        align-self: center;   /* 中央對齊 */
+        margin-right: 0;      /* 取消右邊距 */
+        margin-left: 0;       /* 可選，保證完全居中 */
+    }
+    
+    .footer-right ul {
+        display: block;          /* 改成區塊排列 */
+        padding-left: 0;
+    }
+    .footer-right ul li {
+        display: block;          /* 每個 li 獨立一行 */
+        white-space: normal;     /* 允許換行 */
+        word-break: break-word;  /* 必要時斷行 */
+        margin-bottom: 8px;      /* 行距 */
+    }
+
+        .container {
+        padding-left: 0.5rem;  /* 預設 container 會有 1rem padding */
+        padding-right: 0.5rem;
+    }
 }
