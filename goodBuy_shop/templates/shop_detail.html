@@ -4,50 +4,50 @@
 <head>
     <meta charset="UTF-8">
     <title>{{ shop.name }} - 賣場詳情</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/shop_detail.css' %}">
     {% include 'common/header.html' %}
 </head>
 <body>
     
-<div class="container">
-    <div class="row">
+<div class="container my-4">
+    <div class="row no-gutters justify-content-center">
+        <div class="col-12 col-lg-10">
 
             <!-- 賣家個人資料 -->
             {% include 'info_s.html' %}
 
             <!-- 主卡片 -->
-            <div class="card p-3 d-flex flex-column">
-                <!-- 上半部：左右結構 -->
-                <div class="d-flex flex-row">
-                    <!-- 左：主圖＋收藏 -->
-                    <div class="image-scroll-box">
-                        <div class="d-flex flex-column gap-2 mt-2">
-                        {% for image in shop_images %}
-                            {% if not image.is_cover %}
-                                <div class="position-relative thumbnail-box">
-                                    <img src="{{ image.img.url }}" class="img-thumbnail thumbnail-img gallery-item"  data-src="{{ image.img.url }}" >
-                                </div>
-                            {% endif %}
-                        {% endfor %}
-                        </div>
-                    </div>
+            <div class="card p-3">
+                <div class="d-flex flex-column flex-md-row gap-3">
                     
-                    <!-- 商店收藏 -->
-                    {% include 'detail/shop_collect.html' %}
+                    <!-- 左側：主圖 + 收藏 -->
+                        <div class="d-flex flex-column gap-2 mt-2">
+                            {% for image in shop_images %}
+                                {% if not image.is_cover %}
+                                    <div class="position-relative thumbnail-box">
+                                        <img src="{{ image.img.url }}" class="img-thumbnail thumbnail-img gallery-item" data-src="{{ image.img.url }}">
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        <!-- 收藏 -->
+                        <div class="mt-3">
+                            {% include 'detail/shop_collect.html' %}
+                        </div>
 
-                    <!-- 右側：上是編輯與刪除，下是商品 -->
-                    <div class="right-box">
-                        <!-- 上：標題與按鈕 -->
+                    <!-- 右側：標題、按鈕、商品 -->
+                    <div class="flex-grow-1 d-flex flex-column">
+                        <!-- 標題與按鈕 -->
                         <div class="d-flex justify-content-between align-items-start mb-3 shopname">
                             <div>
                                 <h5>{{ shop.name }}</h5>
                                 <small class="text-muted">{{ shop.update|date:"Y/m/d H:i" }}</small>
-                                <!-- 標籤 -->
                                 {% include 'detail/shop_tags.html' %}
                             </div>
                             {% if user == shop.owner %}
-                                <div class="d-flex gap-2">
+                                <div class="d-flex flex-column flex-sm-row gap-2">
                                     {% include 'detail/shop_copy.html' %}
                                     {% include 'detail/shop_edit.html' %}
                                     {% include 'detail/shop_delete.html' %}
@@ -55,42 +55,41 @@
                             {% endif %}
                         </div>
 
-                        <!-- 下：商品選擇區 -->
-                        <div>
-                            <!-- 商品選項 -->
-                            <h6 class="mb-3">選項></h6>
+                        <!-- 商品選項 -->
+                        <h6 class="mb-3">選項 ></h6>
+                        <div class="product-list">
                             {% for product in products %}
-                                <div class="card mb-3 p-2">
-                                    <div class="row align-items-center py-2">
-                                        <div class="col-auto pe-3 product-img-box">
-                                            {% if product.img %}
-                                                <img src="{{ product.img.url }}" alt="{{ product.name }}" class="product-img">
-                                            {% else %}
-                                                <img src="{% static 'img/no_uppic.png' %}" class="product-img" />
-                                            {% endif %}
-                                        </div>
-                                        <div class="col d-flex product-name-wrapper">
-                                            <span class="product-name">{{ product.name }}</span>
-                                        </div>
-                                        <div class="col-md-4 text-danger">{{ product.price }}$</div>
-                                        <div class="col-md-4">庫存：{{ product.remaining_quantity }}</div>
-                                        <div class="col d-flex justify-content-end">
-                                            {% if user != shop.owner %}
-                                                <form action="{% url 'add_to_cart' product.id %}" method="post">
-                                                    {% csrf_token %}
-                                                    <div class="d-flex align-items-center quantity-form-wrapper">
-                                                        <div class="input-group input-group-sm quantity-wrapper">
-                                                            <button type="button" class="btn btn-outline-secondary" onclick="decreaseQty(this)">-</button>
-                                                            <input type="number" name="quantity" class="form-control text-center" min="1" max="{{ product.remaining_quantity }}" value="1" >
-                                                            <button type="button" class="btn btn-outline-secondary" onclick="increaseQty(this)">+</button>
-                                                        </div>
-                                                        <button class="scb btn btn-outline-primary btn-sm" type="submit">加入購物車</button>
+                            <div class="card mb-3 p-2">
+                                <div class="row align-items-center g-2">
+                                    <div class="col-auto pe-3">
+                                        {% if product.img %}
+                                            <img src="{{ product.img.url }}" alt="{{ product.name }}" class="product-img">
+                                        {% else %}
+                                            <img src="{% static 'img/no_uppic.png' %}" class="product-img" />
+                                        {% endif %}
+                                    </div>
+                                    <div class="col">
+                                        <span class="product-name">{{ product.name }}</span>
+                                    </div>
+                                    <div class="col-6 col-md-3 text-danger">{{ product.price }}$</div>
+                                    <div class="col-6 col-md-3">庫存：{{ product.remaining_quantity }}</div>
+                                    <div class="col-12 col-md d-flex justify-content-end">
+                                        {% if user != shop.owner %}
+                                            <form action="{% url 'add_to_cart' product.id %}" method="post">
+                                                {% csrf_token %}
+                                                <div class="d-flex flex-column flex-sm-row align-items-stretch gap-2">
+                                                    <div class="input-group quantity-wrapper">
+                                                        <button type="button" class="btn btn-outline-secondary minus-btn" onclick="decreaseQty(this)">-</button>
+                                                        <input type="number" name="quantity" class="form-control quantity-input text-center" min="1" max="{{ product.remaining_quantity }}" value="1">
+                                                        <button type="button" class="btn btn-outline-secondary plus-btn" onclick="increaseQty(this)">+</button>
                                                     </div>
-                                                </form>
-                                            {% endif %}
-                                        </div>
+                                                    <button class="btn btn-outline-primary btn-sm add-cart-btn" type="submit">加入購物車</button>
+                                                </div>
+                                            </form>
+                                        {% endif %}
                                     </div>
                                 </div>
+                            </div>
                             {% endfor %}
                         </div>
                     </div>
@@ -127,8 +126,8 @@
                                 <ul>
                                     {% for sp in shop.shoppayment_set.all %}
                                         <li>
-                                            <strong>{{ sp.payment_account.payment.name }}</strong>
-                                            （帳號：{{ sp.payment_account.account }}）
+                                            <strong>{{ sp.payment_account.payment.name }}</strong><br>
+                                            <small class="text-muted">帳號：{{ sp.payment_account.account }}</small>
                                         </li>
                                     {% endfor %}
                                 </ul>
@@ -136,7 +135,6 @@
                                 <span class="text-muted">尚未設定付款方式</span>
                             {% endif %}
                         </p>
-                        
                     </div>
                 </div>
             </div>
@@ -185,14 +183,8 @@
                     <p class="text-muted">目前沒有公告</p>
                 {% endif %}
             </div>
+        </div>
     </div>
 </div>
-{% if copied_text %}
-<script>
-  navigator.clipboard.writeText(`{{ copied_text|escapejs }}`)
-    .catch(()=>{}); // 某些瀏覽器需使用者互動才允許複製
-</script>
-{% endif %}
-<script src="{% static 'js/shop_detail.js' %}"></script>
 </body>
 </html>
