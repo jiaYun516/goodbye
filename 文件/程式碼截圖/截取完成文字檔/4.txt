@@ -1,0 +1,42 @@
+編號：4
+檔案：goodBuy_order/models/cart.py
+
+用途：把指定 product 加入/更新到使用者購物車；若已有同商品，累加數量；最終數量不超過 product.stock。
+
+簽名：add_or_update_product(product, quantity) -> Cart
+
+行為：
+
+product.stock < 1 → ValueError("此商品已售完…")
+
+既有項目：quantity = min(舊數量 + 新增數量, product.stock)
+
+新增項目：quantity = min(新增數量, product.stock)
+
+去重：由 UniqueConstraint(user, product) 保證同品單一列。
+
+回傳：更新後的 Cart 物件。
+
+備註：僅同步當下庫存，實際「保留庫存」發生在下單時。
+
+
+程式碼截取
+from django.db import transaction, IntegrityError
+
+
+class Cart(models.Model):
+
+    # 省略模型定義相關
+
+    def add_or_update_product(self, product, quantity):
+        if product.stock < 1:
+            raise ValueError('此商品已售完，無法加入購物車')
+        try:
+            obj = Cart.objects.get(user=self.user, product=product)
+            obj.quantity = min(obj.quantity + quantity, product.stock)
+        except Cart.DoesNotExist:
+            obj = Cart(user=self.user, product=product,
+                       quantity=min(quantity, product.stock))
+        obj.save()
+        return obj
+
