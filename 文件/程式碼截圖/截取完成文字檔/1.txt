@@ -32,46 +32,66 @@ def get_rush_summaries(shop, user=None):
     效能：select_related / prefetch_related 預抓關聯，避免 N+1。
     """
 
+    # 截止點（若沒設定 end_time，就用現在）
     cutoff = shop.end_time or timezone.now()
 
+    # 取得多帶清單：只取截止前；關聯 user 與 product；按 user_id + 建立時間 + id 穩定排序
+    # 註：註解提到 created_at，但實際使用 create_time，依你既有模型欄位為準。
     intents_qs = (
         PurchaseIntent.objects
         .filter(shop=shop, create_time__lte=cutoff)
-        .select_related('user')                       # FK 最佳化
-        .prefetch_related('intent_products__product') # 反向/多筆最佳化
-        .order_by('user_id', 'create_time', 'id')     # 穩定的時間序
+        .select_related('user')                      # 外鍵：避免 N+1
+        .prefetch_related('intent_products__product')# 反向/M2M：一次抓
+        .order_by('user_id', 'create_time', 'id')     # 穩定時間序
     )
 
-        # 彙總使用者帶多各商品總量、總量/總額、時序明細
+    IntentProduct_qs = namedtuple('IntentProduct', 'product quantity')
+
+    # 聚合容器：
+    #  - per_user_products：每人各商品累計數
+    #  - per_user_first_ts：每人第一筆意向時間
+    #  - per_user_qty / per_user_amount：每人累計數量/金額
+    #  - per_user_items：每人按時間序的(時間, 商品, 數量, 單價)紀錄
+    #  - per_user_obj：快取 User 物件
     per_user_products = defaultdict(lambda: defaultdict(int))  # uid -> pid -> qty
-    per_user_first_ts = {}                                     # uid -> 第一筆時間
-    per_user_qty = defaultdict(int)                            # uid -> 總數量
-    per_user_amount = defaultdict(lambda: 0)                   # uid -> 總金額
-    per_user_items = defaultdict(list)                         # uid -> 時序明細（達到此金額/數量時間）
-    per_user_obj = {}                                          # uid -> User 物件
+    per_user_first_ts = {}                                     # uid -> datetime
+    per_user_qty = defaultdict(int)                            # uid -> int
+    per_user_amount = defaultdict(lambda: 0)                   # uid -> Decimal/數值
+    per_user_items = defaultdict(list)                         # uid -> [ (created_at, product, qty, price) ]
+    per_user_obj = {}                                          # uid -> <User>
 
     for intent in intents_qs:
         uid = intent.user_id
         per_user_obj.setdefault(uid, intent.user)
-        ts = getattr(intent, 'created_at', intent.create_time)  # 以實際欄位為準
-        per_user_first_ts.setdefault(uid, ts)
+
+        # 以第一筆出現的 create_time 當「第一意向時間」
+        per_user_first_ts.setdefault(uid, getattr(intent, 'create_time', timezone.now()))
 
         for ip in intent.intent_products.all():
             qty = int(ip.quantity or 0)
-            price = ip.price if getattr(ip, 'price', None) is not None else ip.product.price
+            # 單價優先用意向項目上的 price，否則回退商品定價
+            price = getattr(ip, 'price', None)
+            price = price if price is not None else ip.product.price
+
             per_user_products[uid][ip.product_id] += qty
             per_user_qty[uid] += qty
             per_user_amount[uid] += price * qty
-            per_user_items[uid].append((ts, ip.product, qty, price))
+            # 保留時間序明細（同上：時間欄位不存在時回退 now()）
+            per_user_items[uid].append((getattr(intent, 'create_time', timezone.now()), ip.product, qty, price))
 
-         # 計算達標時間，總金額/數量相同時用來決定最終分配
-        reached_qty_at, reached_amount_at = {}, {}
+    # 依時間序累加，找出「第一次達到最終總量/總額」的時間點（作為 tie-break）
+    reached_qty_at = {}
+    reached_amount_at = {}
     for uid, items in per_user_items.items():
-        final_qty, final_amt = per_user_qty[uid], per_user_amount[uid]
-        c_qty = c_amt = 0
-        rq_ts = ra_ts = None
+        final_qty = per_user_qty[uid]
+        final_amt = per_user_amount[uid]
 
-        for created_at, _, qty, price in items:  # 已依時間序
+        c_qty = 0
+        c_amt = 0
+        rq_ts = None
+        ra_ts = None
+
+        for created_at, product, qty, price in items:  # 已按時間序
             if rq_ts is None:
                 c_qty += qty
                 if c_qty >= final_qty:
@@ -83,21 +103,21 @@ def get_rush_summaries(shop, user=None):
             if rq_ts and ra_ts:
                 break
 
+        # 萬一沒有就回退第一筆（避免 None 影響排序）
         reached_qty_at[uid] = rq_ts or per_user_first_ts[uid]
         reached_amount_at[uid] = ra_ts or per_user_first_ts[uid]
 
-         # 組 summaries + 排序規則（數量/金額優先；同值看達標時間→首筆→user_id）
-    IntentProductRow = namedtuple('IntentProduct', 'product quantity')
+    # 將每人各商品總量整理為列表，並組合摘要列
     summaries = []
-
     for uid, pmap in per_user_products.items():
         products = []
+        # 將 pid -> qty 轉為 (product, quantity)；以該人時間序中的第一個 product 物件為主
         for pid, qty in pmap.items():
             prod = next((it[1] for it in per_user_items[uid] if it[1].id == pid), None)
             if prod:
-                products.append(IntentProductRow(prod, qty))
+                products.append(IntentProduct_qs(prod, qty))
 
-        summaries.append({
+        row = {
             'user': per_user_obj[uid],
             'products': products,
             'total_price': per_user_amount[uid],
@@ -106,8 +126,34 @@ def get_rush_summaries(shop, user=None):
             'reached_amount_at': reached_amount_at[uid],
             'first_intent_at': per_user_first_ts[uid],
             'user_id': uid,
-        })
+        }
 
+        # 自己視角（可用來顯示對照他人申請後剩餘量以判定是否成功）
+        if user and uid == getattr(user, 'id', None):
+            self_view = []
+            for prod, qty in products:
+                others_claimed = (
+                    IntentProduct.objects
+                    .filter(product=prod, intent__shop=shop)
+                    .exclude(intent__user=user)
+                    .aggregate(total=Sum('quantity'))['total'] or 0
+                )
+                available = max(prod.stock - others_claimed, 0)
+                self_view.append({
+                    'product': prod,
+                    'quantity': qty,
+                    'price': prod.price,
+                    'total_price': prod.price * qty,
+                    'available': available,
+                    'is_successful': qty <= available,
+                })
+            row['self_view'] = self_view
+
+        summaries.append(row)
+
+    # 排序規則：
+    #  - 數量優先：總數量降序，達標數量時間早者優先，再比第一意向時間與 user_id
+    #  - 金額優先（含 id=2）：總金額降序，達標金額時間早者優先，再比第一意向時間與 user_id
     if shop.purchase_priority_id == 3:  # 數量優先
         summaries.sort(key=lambda s: (
             -int(s['total_quantity']),
@@ -124,6 +170,7 @@ def get_rush_summaries(shop, user=None):
         ))
 
     return summaries
+
 
 
 

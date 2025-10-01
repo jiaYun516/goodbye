@@ -61,7 +61,7 @@
           {{ request.user.profile.nickname|default:request.user.username }}
         </a>
       </h3>
-        <a href="/user/editprofile/">點擊編輯個人資料&gt;</a>
+        <a href="{% url 'editprofile' %}">點擊編輯個人資料&gt;</a>
         
       </div>
     </div>

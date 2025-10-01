@@ -104,7 +104,14 @@ class Command(BaseCommand):
             username = getattr(getattr(user, 'profile', None), 'nickname', None) or getattr(user, 'username', user.id)
             key_val = s['total_price'] if shop.purchase_priority_id == 2 else s['total_quantity']
             reached_at = s['reached_amount_at'] if shop.purchase_priority_id == 2 else s['reached_qty_at']
-            self.stdout.write(self.style.SUCCESS(f'  使用者 {username}｜主鍵={key_val}｜達標時間={reached_at}'))
+            total_price = s['total_price']
+            total_qty = s['total_quantity']
+            self.stdout.write(self.style.SUCCESS(f'  使用者 {username}｜比較主鍵={key_val}｜達標時間={reached_at}'))
+            self.stdout.write(self.style.SUCCESS(f'  喊單金額={total_price}｜喊單數量={total_qty}'))
+
+
+            user_claim_qty    = 0
+            user_claim_amount = 0
 
             lines = []
             user_total = 0
@@ -114,16 +121,23 @@ class Command(BaseCommand):
                 claim_qty = min(want_qty, available)
 
                 if claim_qty > 0:
-                    lines.append(f'    - 商品#{p.id} {p.name} x {claim_qty} @ {p.price} = {p.price * claim_qty}')
+                    line_amount = p.price * claim_qty
+                    lines.append(f'    - 商品#{p.id} {p.name} @ {claim_qty} x {p.price} = {p.price * claim_qty}')
                     product_claimed[p.id] += claim_qty
                     user_total += p.price * claim_qty
                     total_items += claim_qty
+                    user_claim_qty    += claim_qty
+                    user_claim_amount += line_amount
 
             if user_total > 0:
                 total_orders += 1
                 total_amount += user_total
                 for ln in lines:
                     self.stdout.write(ln)
+
+            self.stdout.write(self.style.NOTICE(
+                f'  👉 得標數量={user_claim_qty}｜得標金額={user_claim_amount}\n'
+            ))
 
         # 剩餘庫存概覽
         self.stdout.write(self.style.WARNING('\n商品剩餘庫存：'))

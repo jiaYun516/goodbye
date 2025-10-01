@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.db import transaction
 from django.db.models import F, Sum
 from collections import defaultdict
+from django.utils import timezone
 
 from goodBuy_shop.models import *
 from goodBuy_web.models import *
@@ -84,9 +85,10 @@ def checkout_step1(request):
                         shop = maybe_extend_rush(shop)
 
                         # 建立/取得本次多帶（行為本身不扣庫存）
-                        intent, _ = PurchaseIntent.objects.get_or_create(
+                        intent, created  = PurchaseIntent.objects.update_or_create(
                             user=request.user,
                             shop=shop,
+                            defaults={'create_time': timezone.now()}
                         )
                         print(intent)
 

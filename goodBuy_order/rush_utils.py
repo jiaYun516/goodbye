@@ -38,7 +38,7 @@ def get_rush_summaries(shop, user=None):
     for intent in intents_qs:
         uid = intent.user_id
         per_user_obj.setdefault(uid, intent.user)
-        per_user_first_ts.setdefault(uid, getattr(intent, 'created_at', timezone.now()))
+        per_user_first_ts.setdefault(uid, getattr(intent, 'create_time', timezone.now()))
         for ip in intent.intent_products.all():
             qty = int(ip.quantity or 0)
             price = getattr(ip, 'price', None)
@@ -47,7 +47,7 @@ def get_rush_summaries(shop, user=None):
             per_user_products[uid][ip.product_id] += qty
             per_user_qty[uid] += qty
             per_user_amount[uid] += price * qty
-            per_user_items[uid].append((getattr(intent, 'created_at', timezone.now()), ip.product, qty, price))
+            per_user_items[uid].append((getattr(intent, 'create_time', timezone.now()), ip.product, qty, price))
 
     # 計算 reached_*_at：在時間序累加，第一次達到最終總量/總額的時間
     reached_qty_at = {}
@@ -172,3 +172,4 @@ def maybe_extend_rush(shop):
             locked.save(update_fields=['end_time'])
 
         return locked
+
