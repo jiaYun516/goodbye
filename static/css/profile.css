@@ -373,3 +373,140 @@ body {
     row-gap: 8px;
   }
 }
+/* ======= 安全護欄（不影響桌機，但讓手機不爆版） ======= */
+*,
+*::before,
+*::after { box-sizing: border-box; }
+img { max-width: 100%; height: auto; display: block; }
+body { overflow-x: hidden; }
+
+/* 去除重複定義衝突：讓 .profile-stats-row 以這份為準 */
+.profile-stats-row {
+  display: flex;
+  align-items: center;
+  gap: 50px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+/* 卡片容器在小螢幕不再用負邊距硬撐 */
+@media (max-width: 992px) {
+  .profile-card-list {
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+  }
+}
+
+/* ======= 平板以下（<= 992px） ======= */
+@media (max-width: 992px) {
+  /* 頂部區塊：別用 200px 外距，改用彈性左右內距 */
+  .profile-header,
+  .profile-container2 {
+    margin: 90px auto 24px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 16px 20px;
+    width: min(100%, 920px);
+  }
+
+  /* 六欄改四欄 */
+  .row-cols-lg-6 > .col { width: 25%; }
+  .card-img-top { height: 120px; }
+}
+
+/* ======= 手機大尺寸（<= 768px） ======= */
+@media (max-width: 768px) {
+  .profile-header,
+  .profile-container2 {
+    margin: 80px auto 20px;
+    padding: 14px 16px;
+    width: min(100%, 680px);
+  }
+
+  /* 四欄改兩欄 */
+  .row-cols-lg-6 > .col { width: 50%; }
+
+  /* 個人頭像縮小 + 文字不擠 */
+  .profile-avatar {
+    width: 88px;
+    height: 88px;
+    margin-right: 12px;
+  }
+  .profile-header .profile-basic h2 {
+    font-size: 1.6rem;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+
+  /* 資訊列靠左堆疊、縮小間距 */
+  .profile-stats-row {
+    justify-content: flex-start;
+    gap: 16px;
+  }
+
+  /* 長文斷行避免撐寬 */
+  .profile-bio {
+    max-width: 100%;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+
+  /* 黑名單按鈕容器自動換行靠右 */
+  .bl-button-container {
+    margin-left: 0;
+    margin-top: 8px;
+  }
+}
+
+/* ======= 手機小尺寸（<= 576px） ======= */
+@media (max-width: 576px) {
+  /* 外距更緊，避免被固定 Header 壓住 */
+  .profile-header,
+  .profile-container2 {
+    margin: 72px auto 16px;
+    padding: 12px 14px;
+    width: 100%;
+    border-radius: 8px;
+  }
+
+  /* 兩欄改一欄（滿版卡片，最穩） */
+  .row-cols-lg-6 > .col { width: 100%; }
+
+  .card-img-top { height: 160px; } /* 單欄可放大些更好看 */
+  .card-title { font-size: 1rem; }
+  .card-sub { font-size: 0.9rem; }
+
+  /* 頭像與名字上下排 */
+  .avatar-name {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  /* 評論卡片：字級稍微縮、間距更緊湊 */
+  .review-card { padding: 12px 14px; }
+  .review-body { font-size: 14px; }
+  .review-stars { font-size: 14px; }
+}
+
+/* ======= 超小螢幕（<= 400px） ======= */
+@media (max-width: 400px) {
+  .profile-avatar { width: 72px; height: 72px; }
+  .profile-header .profile-basic h2 { font-size: 1.3rem; }
+  .more-btn { font-size: 0.95rem; }
+}
+
+/* ======= 可捲動卡片列（若你的卡片很多、想保留橫向瀏覽） ======= */
+@media (max-width: 768px) {
+  .profile-card-strip {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    scroll-snap-type: x mandatory;
+  }
+  .profile-card-strip .profile-card.card {
+    min-width: 75%;
+    scroll-snap-align: start;
+  }
+}

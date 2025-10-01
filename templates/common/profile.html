@@ -13,7 +13,11 @@
   <div class="header">{% include 'base.html' %}</div>
 
 <!-- 個人資料 -->
-  <div class="profile-header">
+  <div class="profile-scale-wrap">
+  <div class="profile-scale-target">
+    <div class="profile-header">
+      <!-- 這裡放原本的 profile-header 內容 -->
+    
 
     <div class="profile-stats-top">
       <div class="profile-stats-row">
@@ -66,8 +70,10 @@
             {% endif %}
         </p>
 
-  </div>
 
+</div>
+  </div>
+</div>
   <div class="profile-container">
     {% if block_reason %}
       <div class="alert alert-danger" role="alert">{{ block_reason }}</div>

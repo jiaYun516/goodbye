@@ -63,3 +63,26 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('scroll', () => { if (!pop.hidden) pop.hidden = true; }, { passive: true });
   window.addEventListener('resize', () => { if (!pop.hidden) pop.hidden = true; });
 });
+
+// static/js/profile_scale.js
+document.addEventListener('DOMContentLoaded', () => {
+  const wrap = document.querySelector('.profile-scale-wrap');
+  const target = wrap?.querySelector('.profile-scale-target');
+  if (!wrap || !target) return;
+
+  const designWidth = 520; // 你的設計寬度
+
+  function rescale() {
+    const wrapWidth = wrap.clientWidth;
+    const scale = Math.min(1, wrapWidth / designWidth); // 超過設計寬不放大，只縮小
+    target.style.transform = `scale(${scale})`;
+
+    // 修正縮放後高度，避免被蓋住
+    const rect = target.getBoundingClientRect();
+    wrap.style.height = rect.height + 'px';
+  }
+
+  rescale();
+  window.addEventListener('resize', rescale);
+  window.addEventListener('load', rescale);
+});
