@@ -54,42 +54,26 @@
       <!-- 寄送地址 -->
       <div class="block mb-3">
         <div class="block-header">寄送地址：</div>
-      
-        {% if addresses %}
-          <!-- 有既有地址：只顯示清單 -->
-          <div class="block-body">
-            {% for addr in addresses %}
-              <div class="form-check mb-1">
-                <input class="form-check-input" type="radio" name="address_choice"
-                       id="addr{{ addr.id }}" value="{{ addr.id }}"
-                       {% if user_address and user_address.id == addr.id %}checked{% endif %}>
-                <label class="form-check-label" for="addr{{ addr.id }}">
-                  {{ addr.name }}｜{{ addr.phone|default:addr.mobile }}｜{{ addr.city }}{{ addr.address }}
-                </label>
-              </div>
-            {% endfor %}
+        <div class="block-body row g-2">
+          <div class="col-12 col-md-4">
+            <label class="form-label">縣市：</label>
+            <select name="city" class="form-select">
+              {% for code, label in city_list %}
+                <option value="{{ code }}"
+                  {% if user_address and user_address.city == code %}selected{% endif %}>
+                  {{ label }}
+                </option>
+              {% endfor %}
+            </select>
           </div>
-        {% else %}
-          <!-- 沒有任何地址：顯示「新增地址」表單（沿用你原本的縣市/地址，加上姓名/手機）-->
-          <input type="hidden" name="address_choice" value="new">
-      
-          <div class="block-body row g-2">
-            <div class="col-12 col-md-4">
-              <label class="form-label">縣市：</label>
-              <select name="city" class="form-select">
-                {% if city_list %}
-                  {% for code,label in city_list %}
-                    <option value="{{ code }}" {% if user_address and user_address.city == code %}selected{% endif %}>{{ label }}</option>
-                  {% endfor %}
-                {% endif %}
-              </select>
-            </div>
-            <div class="col-12 col-md-8">
-              <label class="form-label">地址：</label>
-              <input type="text" class="form-control" name="detail_address" value="{{ user_address.address|default:'' }}">
-            </div>
+        
+          <div class="col-12 col-md-8">
+            <label class="form-label">地址：</label>
+            <input type="text" class="form-control" name="detail_address"
+                   value="{{ user_address.address|default_if_none:'' }}">
           </div>
-        {% endif %}
+        </div>        
+      
       </div>
 
       <!-- 收件人資料 -->
