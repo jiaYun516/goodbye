@@ -3,6 +3,8 @@ from functools import wraps
 from django.contrib import messages
 from django.db.models import *
 from django.shortcuts import *
+import re
+
 
 from .models import *
 
@@ -17,3 +19,22 @@ def get_blocked_user_ids(user):
 
     # 合併成一個 set
     return set(blocked_by_me).union(set(blocked_me))
+
+def validate_tw_id(twid: str) -> bool:
+    twid = twid.upper()
+    if not re.match(r"^[A-Z][12]\d{8}$", twid):
+        return False
+
+    letters = "ABCDEFGHJKLMNPQRSTUVXYWZIO"
+    code = letters.index(twid[0]) + 10
+    A1 = code // 10
+    A2 = code % 10
+
+    digits = [int(x) for x in twid[1:]]
+    weights = [8, 7, 6, 5, 4, 3, 2, 1]  # d1~d8 的權重
+    total = A1*1 + A2*9
+    for d, w in zip(digits[:-1], weights):
+        total += d * w
+
+    checksum = digits[-1]
+    return (total + checksum) % 10 == 0

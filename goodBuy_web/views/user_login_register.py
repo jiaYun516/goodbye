@@ -11,7 +11,7 @@ from django.urls import reverse
 from ..forms import *
 
 #=============================
-#登入
+# 登入
 #=============================
 def logins(request):
     if request.user.is_active:
@@ -33,7 +33,7 @@ def logins(request):
     return render(request, 'common/login.html', {'form': form})
 
 #=============================
-#註冊
+# 註冊
 #=============================
 def register(request):
     if request.user.is_active:
@@ -42,38 +42,46 @@ def register(request):
     if request.method == 'POST':
         form = RegisterForm(request.POST)
         if form.is_valid():
+            # 取欄位
             username = form.cleaned_data['username']
             email    = form.cleaned_data['email']
             password = form.cleaned_data['password']
+            ids      = form.cleaned_data['ids']
 
-            User.objects.create_user(username=username, email=email, password=password)
+            # hash 身分證
+            import hashlib
+            id_hash = hashlib.sha256(ids.encode()).hexdigest()[:20]
+
+            # 建立 user
+            user = User(
+                username=username,
+                email=email,
+                id_hash=id_hash,
+            )
+            user.set_password(password)
+            user.save()
+
             return redirect('login')
-        # 失敗：直接 render，欄位下會顯示錯誤
         else:
             print("REGISTER ERRORS =>", form.errors)
-        return render(request, 'common/register.html', {'form': form})
+            return render(request, 'common/register.html', {'form': form})
 
-    # GET
     form = RegisterForm()
     return render(request, 'common/register.html', {'form': form})
 
 #=============================
-#登出
+# 登出
 #=============================
 def logouts(request):
     logout(request)
     return redirect('/')
 
 #=============================
-#修改密碼
+# 修改密碼
 #=============================
 @login_required
 def change_pass(request):
     form = ChangePasswordForm(request.POST or None, user=request.user)
-    # if request.method == 'POST':
-    # current_password = request.POST.get('current_password')
-    # new_password = request.POST.get('new_password')
-    # confirm_password = request.POST.get('confirm_password')
 
     if request.method == 'POST' and form.is_valid():
         new_password = form.cleaned_data['new_password'] 
@@ -85,7 +93,7 @@ def change_pass(request):
     return render(request, 'common/change_pass.html', {'form': form})
 
 #=============================
-#更改個人檔案
+# 更改個人檔案
 #=============================
 @login_required
 def editProfile(request):
@@ -111,7 +119,7 @@ def editProfile(request):
     }
 
     if request.method == "POST":
-        # 1) 建立三張表單
+        # 建立三張表單
         user_form = UserBasicForm(request.POST, user=user)
         pwd_form  = ChangePasswordForm(request.POST, user=request.user)
 
@@ -128,7 +136,7 @@ def editProfile(request):
                 data[dst] = data[src]
         addr_form = AddressForm(data)
 
-        # 2) 決定哪些表單需要驗證
+        # 決定哪些表單需要驗證
         pwd_submitted = any((request.POST.get(k) or "").strip() for k in ["new_password", "confirm_password"])
         addr_submitted = any((data.get(k) or "").strip() for k in ["name", "phone", "city", "address"])
 
@@ -146,7 +154,7 @@ def editProfile(request):
                 "accounts": PaymentAccount.active.filter(user=user),
             })
 
-        # 3) 寫入 User（email/username）
+        # 寫入 User（email/username）
         email = (user_form.cleaned_data.get("email") or "").strip()
         username = (user_form.cleaned_data.get("username") or "").strip()
         user.email = email
@@ -154,7 +162,7 @@ def editProfile(request):
             user.username = username
         user.save()
 
-        # 4) 寫入密碼（有輸入才變更）
+        # 寫入密碼（有輸入才變更）
         if pwd_submitted:
             old_password = pwd_form.cleaned_data.get("old_password") or ""
             new_password = pwd_form.cleaned_data.get("new_password") or ""
@@ -164,14 +172,14 @@ def editProfile(request):
                 user.save()
                 update_session_auth_hash(request, user)  # 保持登入
 
-        # 5) 寫入 Profile（暱稱/自介/頭像）
+        # 寫入 Profile（暱稱/自介/頭像）
         profile.nickname = request.POST.get("nickname", "") or ""
         profile.bio = request.POST.get("bio", "") or ""
         if "avatar" in request.FILES:
             profile.avatar = request.FILES["avatar"]
         profile.save()
 
-        # 6) 地址：有輸入才建立/更新
+        # 地址：有輸入才建立/更新
         if addr_submitted:
             name = addr_form.cleaned_data.get("name") or ""
             phone = addr_form.cleaned_data.get("phone") or ""
@@ -212,4 +220,19 @@ def editProfile(request):
         "accounts": PaymentAccount.active.filter(user=user),
     })
 
+#=============================
+# 修改身份證
+#=============================
+@login_required
+def edit_id_hash(request):
+    user = request.user
+    if request.method == "POST":
+        form = IdHashForm(request.POST, instance=user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "身份證字號已更新")
+            return redirect("editprofile")  # 或跳回同頁
+    else:
+        form = IdHashForm(instance=user)
 
+    return render(request, "common/edit_id_hash.html", {"form": form})

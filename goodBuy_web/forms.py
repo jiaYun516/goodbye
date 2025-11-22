@@ -1,10 +1,12 @@
+import hashlib
 from django import forms
 from django.core.validators import RegexValidator
 from django.contrib.auth import authenticate , get_user_model
 from goodBuy_web.models import *
+from .utils import validate_tw_id
 
 #=============================
-#登入驗證帳號密碼
+# 登入驗證帳號密碼
 #=============================
 class LoginForm(forms.Form):
     username = forms.CharField(max_length=150)
@@ -27,13 +29,19 @@ class LoginForm(forms.Form):
 User = get_user_model()
 
 #=============================
-#新帳號註冊（檢查唯一性 & 密碼一致性）
+# 新帳號註冊（檢查唯一性 & 密碼一致性）
 #=============================
 class RegisterForm(forms.ModelForm):
     # 覆寫username
     username = forms.CharField(
         required=False,
         widget=forms.TextInput(attrs={"class":"form-control", "placeholder":"用戶名稱（可留空）"})
+    )
+    
+    ids = forms.CharField(
+        label="身分證字號",
+        max_length=10,
+        widget=forms.TextInput(attrs={"class":"form-control", "placeholder":"身分證字號"})
     )
         
     password = forms.CharField(
@@ -60,6 +68,21 @@ class RegisterForm(forms.ModelForm):
         if User.objects.filter(email=email).exists():
             raise forms.ValidationError("該電子郵件已被註冊")
         return email
+    
+    def clean_ids(self):
+        raw_id = (self.cleaned_data.get("ids") or "").upper().strip()
+
+        if not validate_tw_id(raw_id):
+            raise forms.ValidationError("身分證格式不正確")
+
+        # 身分證 hash（避免儲存明碼）
+        id_hash = hashlib.sha256(raw_id.encode("utf-8")).hexdigest()
+
+        # 檢查是否已有同 hash（即同身分證）
+        if User.objects.filter(id_hash=id_hash).exists():
+            raise forms.ValidationError("該身分證已被註冊")
+
+        return raw_id
 
     def clean(self):
         cleaned = super().clean()
@@ -67,38 +90,39 @@ class RegisterForm(forms.ModelForm):
         email = cleaned.get("email")
         p1 = cleaned.get("password")
         p2 = cleaned.get("password2")
+        ids = cleaned.get("ids")
 
-        # username 可留空 -> 用 email 前綴
+        # 自動產生 username
         if not u and email:
             base = email.split("@")[0][:140]
             candidate = base
             i = 1
-            # 防撞名：username 最長 150
             while User.objects.filter(username=candidate).exists():
                 suffix = str(i)
-                candidate = (base[:150-len(suffix)] if len(base) + len(suffix) > 150 else base) + suffix
+                candidate = (base[:150 - len(suffix)] if len(base) + len(suffix) > 150 else base) + suffix
                 i += 1
             cleaned["username"] = candidate
-
         else:
-            # 有填 username → 檢查唯一
             if u and User.objects.filter(username=u).exists():
                 self.add_error("username", "該用戶名已被使用")
-            cleaned["username"] = u  # 帶回 strip 後的值
+            cleaned["username"] = u
 
-
-        if u and User.objects.filter(username=u).exists():
-            self.add_error("username", "該用戶名已被使用")
-
+        # 密碼確認
         if p1 or p2:
             if not p1 or not p2:
                 self.add_error("password2", "請完整輸入密碼與確認密碼")
             elif p1 != p2:
                 self.add_error("password2", "兩次輸入的密碼不相符")
-        return cleaned
 
+        # --- 身分證 hash 放入 cleaned_data，給 view 使用 ---
+        if ids:
+            id_hash = hashlib.sha256(ids.upper().encode("utf-8")).hexdigest()
+            cleaned["id_hash"] = id_hash
+
+        return cleaned
+    
 #=============================
-#修改基本資料（避免重複）
+# 修改基本資料（避免重複）
 #=============================
 class UserBasicForm(forms.Form):
     username = forms.CharField(required=False)
@@ -121,7 +145,7 @@ class UserBasicForm(forms.Form):
         return username
 
 #=============================
-#修改密碼（檢查兩次輸入一致性）
+# 修改密碼（檢查兩次輸入一致性）
 #=============================
 class ChangePasswordForm(forms.Form):
     old_password = forms.CharField(
@@ -179,7 +203,7 @@ class ChangePasswordForm(forms.Form):
         return cleaned
 
 #=============================
-#管理收件地址
+# 管理收件地址
 #=============================
 taiwan_mobile_validator = RegexValidator(
     regex=r'^09\d{8}$',
@@ -204,3 +228,29 @@ class AddressForm(forms.Form):
     def clean(self):
         cleaned = super().clean()
         return cleaned
+    
+#=============================
+# 修改身份證字號
+#=============================
+class IdHashForm(forms.ModelForm):
+    id_hash = forms.CharField(
+        label="身份證字號",
+        max_length=10,
+        required=True,
+        widget=forms.TextInput(attrs={"class":"form-control", "placeholder":"請輸入身份證字號"})
+    )
+
+    class Meta:
+        model = User
+        fields = ["id_hash"]
+
+    def clean_id_hash(self):
+        id_hash = (self.cleaned_data.get("id_hash") or "").upper()
+        if not validate_tw_id(id_hash):
+            raise forms.ValidationError("身份證字號格式不正確")
+        qs = User.objects.filter(id_hash=id_hash)
+        if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise forms.ValidationError("該身份證字號已被使用")
+        return id_hash

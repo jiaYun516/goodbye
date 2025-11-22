@@ -1,0 +1,10 @@
+{% load static %}
+<div class="container mt-5">
+    <h2>修改身份證字號</h2>
+    <form method="post" style="max-width: 400px;">
+        {% csrf_token %}
+        {{ form.id_hash }}
+        {% include "common/field_error.html" with field=form.id_hash %}
+        <button type="submit" class="btn btn-primary mt-3">更新身份證字號</button>
+    </form>
+</div>

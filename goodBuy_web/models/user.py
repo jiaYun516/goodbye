@@ -8,6 +8,7 @@ class User(AbstractUser):
     email = models.EmailField(unique=True)
     introduce = models.TextField(blank=True, null=True)
     img = models.ImageField(upload_to='user_img/', null=True, blank=True)
+    id_hash = models.CharField(max_length=20, null=True, blank=True)
 
     def __str__(self):
         return self.username  
