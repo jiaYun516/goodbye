@@ -50,14 +50,16 @@ def register(request):
 
             # hash 身分證
             import hashlib
-            id_hash = hashlib.sha256(ids.encode()).hexdigest()[:20]
+            id_hash = hashlib.sha256(ids.upper().encode()).hexdigest()
 
             # 建立 user
-            user = User(
-                username=username,
-                email=email,
-                id_hash=id_hash,
+            user = User.objects.create_user(
+                username=username, 
+                email=email, 
+                password=password, 
+                id_hash=id_hash
             )
+
             user.set_password(password)
             user.save()
 

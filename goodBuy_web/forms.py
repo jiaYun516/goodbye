@@ -78,11 +78,12 @@ class RegisterForm(forms.ModelForm):
         # 身分證 hash（避免儲存明碼）
         id_hash = hashlib.sha256(raw_id.encode("utf-8")).hexdigest()
 
-        # 檢查是否已有同 hash（即同身分證）
+        # 檢查是否已有同 hash
         if User.objects.filter(id_hash=id_hash).exists():
             raise forms.ValidationError("該身分證已被註冊")
 
-        return raw_id
+        return id_hash
+
 
     def clean(self):
         cleaned = super().clean()
@@ -245,12 +246,15 @@ class IdHashForm(forms.ModelForm):
         fields = ["id_hash"]
 
     def clean_id_hash(self):
-        id_hash = (self.cleaned_data.get("id_hash") or "").upper()
-        if not validate_tw_id(id_hash):
+        raw_id = (self.cleaned_data.get("id_hash") or "").upper()
+        if not validate_tw_id(raw_id):
             raise forms.ValidationError("身份證字號格式不正確")
+
+        id_hash = hashlib.sha256(raw_id.encode("utf-8")).hexdigest()
         qs = User.objects.filter(id_hash=id_hash)
         if self.instance.pk:
             qs = qs.exclude(pk=self.instance.pk)
         if qs.exists():
             raise forms.ValidationError("該身份證字號已被使用")
+
         return id_hash
