@@ -51,17 +51,26 @@
                     </div>
                 </div>
             </div>
+
             <div class="section">
                 <div class="section-header">變更身分證：</div>
                 <div class="section-body">
+
+
                     <div class="form-group grid-align">
-                        <label for="old_id_hash">舊身分證：</label>
-                        <input type="password" name="old_id_hash" id="old_id_hash">
+                        <label for="old_id">舊身分證：</label>
+                        <input type="text"
+                              name="old_id"
+                              id="old_id">
+                        {% include "common/field_error.html" with field=id_form.old_id %}
                     </div>
 
                     <div class="form-group grid-align">
-                        <label for="new_id_hash">新身分證：</label>
-                        <input type="password" name="new_id_hash" id="new_id_hash">
+                        <label for="id_hash">新身分證：</label>
+                        <input type="text"
+                              name="id_hash"
+                              id="id_hash">
+                        {% include "common/field_error.html" with field=id_form.id_hash %}
                     </div>
                 </div>
             </div>
